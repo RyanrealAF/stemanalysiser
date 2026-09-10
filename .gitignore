@@ -1,0 +1,14 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+.jdk21/
+.android-sdk/
+# Allow tracking real APK binary in public
+!public/app-debug.apk
+!public/apk/*.apk
+!android/app/stemflow.keystore
