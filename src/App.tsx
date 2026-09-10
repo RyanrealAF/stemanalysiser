@@ -91,7 +91,7 @@ export default function App() {
   // Playback State
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(30);
+  const [duration, setDuration] = useState(180);
   const [playSynthMidi, setPlaySynthMidi] = useState(true);
   const [auditionMode, setAuditionMode] = useState<AuditionMode>('hybrid_unison');
 
