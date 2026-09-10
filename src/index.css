@@ -1,0 +1,363 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bwb-black: #07080a;
+    --bwb-card: #101217;
+    --bwb-card-hover: #161922;
+    --bwb-surface: #1a1d26;
+    --bwb-border: #292d38;
+    --bwb-crimson: #dc2626;
+    --bwb-blood: #990000;
+    --bwb-cyan: #06b6d4;
+    --bwb-amber: #f59e0b;
+    --bwb-pink: #ec4899;
+    --bwb-emerald: #10b981;
+    --bwb-violet: #8b5cf6;
+  }
+
+  body {
+    background-color: #07080a;
+    color: #e2e8f0;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow-x: hidden;
+  }
+
+  code, kbd, samp, pre {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Studio Distressed Card & Element Styles */
+.distressed-card {
+  background-color: #101217;
+  border: 1px solid #292d38;
+  position: relative;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.hd-card {
+  background-color: #101217;
+  border: 1px solid #292d38;
+}
+
+.hd-card-inner {
+  background-color: #07080a;
+  border: 1px solid #292d38;
+}
+
+.hd-card-surface {
+  background-color: #1a1d26;
+  border: 1px solid #292d38;
+}
+
+.hd-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* High Density Studio Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #07080a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #292d38;
+  border-radius: 3px;
+  border: 1px solid #101217;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #dc2626;
+}
+
+/* Glow Shadows */
+.shadow-crimson-glow {
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.35);
+}
+
+.shadow-cyan-glow {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.30);
+}
+
+/* =========================================================================
+   HARDWARE SOUNDBOARD CONSOLE TEXTURES & CHASSIS STYLING
+   ========================================================================= */
+
+/* Main soundboard desk chassis texture with dark anodized brushed metallic grain */
+.soundboard-desk-bg {
+  background-color: #07080a;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.25) 2px,
+      rgba(0, 0, 0, 0.25) 4px
+    ),
+    radial-gradient(ellipse at 50% 0%, rgba(220, 38, 38, 0.05) 0%, transparent 70%);
+  background-size: 24px 24px, 24px 24px, 6px 6px, 100% 100%;
+}
+
+/* Brushed anodized aluminum console chassis faceplate */
+.soundboard-chassis {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.012),
+      rgba(255, 255, 255, 0.012) 1px,
+      transparent 1px,
+      transparent 3px
+    ),
+    linear-gradient(180deg, #181b22 0%, #111319 8%, #0d0f14 92%, #080a0d 100%);
+  border: 1px solid #292d38;
+  border-top: 1px solid #3e4453;
+  border-bottom: 2px solid #080a0e;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.8),
+    0 16px 40px rgba(0, 0, 0, 0.8);
+  position: relative;
+}
+
+/* Extruded console channel strip frame */
+.soundboard-channel-strip {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.01),
+      rgba(255, 255, 255, 0.01) 1px,
+      transparent 1px,
+      transparent 2px
+    ),
+    linear-gradient(180deg, #151821 0%, #0e1016 35%, #0a0c10 100%);
+  border: 1px solid #232733;
+  border-top: 1px solid #383e50;
+  border-bottom: 2px solid #050608;
+  box-shadow:
+    inset 1px 0 0 rgba(255, 255, 255, 0.04),
+    inset -1px 0 0 rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 14px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+/* Master console strip (SSL / Neve center section aesthetic) */
+.soundboard-master-strip {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.015),
+      rgba(255, 255, 255, 0.015) 1px,
+      transparent 1px,
+      transparent 2px
+    ),
+    linear-gradient(180deg, #1a1d26 0%, #12141c 35%, #0d0f14 100%);
+  border: 1px solid #333949;
+  border-top: 1px solid #4a536b;
+  border-bottom: 2px solid #050608;
+  box-shadow:
+    inset 1px 0 0 rgba(255, 255, 255, 0.06),
+    inset -1px 0 0 rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 6px 18px rgba(0, 0, 0, 0.6);
+  position: relative;
+}
+
+/* Hardware countersunk hex/philips bolt for rack chassis corners */
+.soundboard-bolt {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #505766 0%, #232731 65%, #101217 100%);
+  border: 1px solid #14161c;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.45),
+    0 1px 2px rgba(0, 0, 0, 0.9);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.soundboard-bolt::after {
+  content: '';
+  width: 6px;
+  height: 1.2px;
+  background: #090a0d;
+  border-radius: 0.5px;
+  box-shadow: 0 0.5px 0.5px rgba(255, 255, 255, 0.25);
+  transform: rotate(35deg);
+}
+
+.soundboard-bolt-gold {
+  background: radial-gradient(circle at 35% 35%, #856a33 0%, #463717 65%, #1c1507 100%);
+  border-color: #120e05;
+}
+
+/* Studio console scribble strip (channel tape / backlit LCD label) */
+.soundboard-scribble-strip {
+  background: linear-gradient(180deg, #1a1e28 0%, #10131a 100%);
+  border: 1px solid #2d3342;
+  border-bottom-color: #191c24;
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.9),
+    inset 0 0 1px rgba(0, 0, 0, 0.8),
+    0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Studio console white masking tape label */
+.soundboard-tape {
+  background: #ece8dd;
+  color: #0e1014;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.6),
+    inset 0 0 6px rgba(0, 0, 0, 0.15);
+  border-left: 2px dashed rgba(0, 0, 0, 0.25);
+  border-right: 2px dashed rgba(0, 0, 0, 0.25);
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: -0.02em;
+}
+
+/* Recessed soundboard fader trough / vertical track groove */
+.soundboard-fader-slot {
+  background: #040507;
+  border: 1px solid #1a1e27;
+  border-top-color: #0b0d13;
+  border-bottom-color: #2b303d;
+  box-shadow:
+    inset 0 4px 8px rgba(0, 0, 0, 0.95),
+    inset 0 0 2px rgba(0, 0, 0, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.04);
+  position: relative;
+}
+
+.soundboard-fader-slit {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: #000000;
+  border-left: 1px solid #101217;
+  border-right: 1px solid #232733;
+}
+
+/* Chunky tactile hardware fader handle with horizontal grip ribs */
+.soundboard-fader-handle {
+  background: linear-gradient(180deg, #3a3f4c 0%, #232630 20%, #1a1c23 50%, #242732 80%, #343946 100%);
+  border: 1px solid #485061;
+  border-top-color: #6d768c;
+  border-bottom-color: #111319;
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.85),
+    0 1px 3px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+  border-radius: 3px;
+  position: relative;
+}
+
+.soundboard-fader-handle-master {
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 25%, #991b1b 60%, #b91c1c 85%, #dc2626 100%);
+  border: 1px solid #f87171;
+  border-top-color: #fca5a5;
+  border-bottom-color: #7f1d1d;
+  box-shadow:
+    0 4px 10px rgba(0, 0, 0, 0.9),
+    0 0 12px rgba(220, 38, 38, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* Center registration notch for fader handle */
+.soundboard-fader-notch {
+  width: 100%;
+  height: 2px;
+  background: #ffffff;
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.8), 0 1px 1px rgba(0, 0, 0, 0.8);
+}
+
+/* Tactile knurled rotary knob */
+.soundboard-rotary-knob {
+  background: radial-gradient(circle at 35% 35%, #353b49 0%, #1e222b 60%, #12141a 100%);
+  border: 1.5px solid #3e4556;
+  border-top-color: #555d72;
+  border-bottom-color: #181b22;
+  box-shadow:
+    0 3px 6px rgba(0, 0, 0, 0.8),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  position: relative;
+}
+
+/* Dot-matrix ventilation mesh / rack speaker grille texture */
+.soundboard-mesh-grille {
+  background-color: #0b0c10;
+  background-image: radial-gradient(#1f232d 1px, transparent 1px);
+  background-size: 5px 5px;
+  border: 1px solid #1b1e27;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.9);
+}
+
+/* Studio console luxury walnut / mahogany end-cheeks */
+.soundboard-wood-cheek {
+  background: linear-gradient(90deg, #240e06 0%, #38180a 25%, #461f0d 50%, #38180a 75%, #1e0b04 100%);
+  border: 1px solid #572710;
+  box-shadow:
+    inset 0 1px 2px rgba(255, 255, 255, 0.15),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.8),
+    0 8px 24px rgba(0, 0, 0, 0.8);
+}
+
+/* Tactile push button - Solo active */
+.soundboard-btn-solo-active {
+  background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%) !important;
+  color: #0f1117 !important;
+  border: 1px solid #fef08a !important;
+  box-shadow:
+    0 0 14px rgba(245, 158, 11, 0.7),
+    inset 0 1px 2px rgba(255, 255, 255, 0.7),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Tactile push button - Mute active */
+.soundboard-btn-mute-active {
+  background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%) !important;
+  color: #ffffff !important;
+  border: 1px solid #fca5a5 !important;
+  box-shadow:
+    0 0 16px rgba(220, 38, 38, 0.8),
+    inset 0 1px 2px rgba(255, 255, 255, 0.6),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Inactive mechanical console button */
+.soundboard-btn-inactive {
+  background: linear-gradient(180deg, #232732 0%, #151820 100%);
+  border: 1px solid #333847;
+  border-top-color: #444b5d;
+  border-bottom-color: #101217;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.soundboard-btn-inactive:active {
+  transform: translateY(1px);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.8),
+    inset 0 1px 2px rgba(0, 0, 0, 0.8);
+}
