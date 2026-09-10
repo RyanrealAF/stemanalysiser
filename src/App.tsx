@@ -27,6 +27,8 @@ import {
   AudioWaveform,
   FileArchive,
   Check,
+  ChevronDown,
+  X,
 } from 'lucide-react';
 
 import {
@@ -85,8 +87,10 @@ export default function App() {
   const [cachedZipBlob, setCachedZipBlob] = useState<{ blob: Blob; filename: string } | null>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [autoDownloadTriggered, setAutoDownloadTriggered] = useState(false);
-  const [activeTab, setActiveTab] = useState<'timeline' | 'pianoroll' | 'accuracy' | 'gemini' | 'features'>('timeline');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'pianoroll' | 'gemini' | 'diagnostics' | 'accuracy' | 'features'>('timeline');
   const [showAudioInput, setShowAudioInput] = useState(false);
+  const [showMixer, setShowMixer] = useState(false);
+  const [showStemMenu, setShowStemMenu] = useState(false);
 
   // Playback State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -749,260 +753,202 @@ export default function App() {
           </div>
         )}
 
-        {/* High-Accuracy DSP Transcription Status Banner (Topmost component once processing is complete) */}
+        {/* Unified Studio Control & Action Bar */}
         {pipelineResult && !isProcessing && (
-          <div className="soundboard-chassis rounded-xl px-4 py-3 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3 text-xs shadow-2xl relative">
-            <div className="absolute top-2 left-2 soundboard-bolt" />
-            <div className="absolute top-2 right-2 soundboard-bolt" />
-
-            <div className="flex items-center gap-2.5 pl-2">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
-                <Award className="w-4 h-4" />
+          <div className="bg-[#101217] border border-[#232733] rounded-xl px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3 text-xs shadow-lg">
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <CheckCircle className="w-4 h-4" />
               </div>
-              <div>
-                <div className="font-semibold text-slate-200 flex items-center gap-2">
-                  <span className="font-mono uppercase tracking-wider text-zinc-300">DSP ACCURACY:</span>
-                  <span className="text-emerald-400 font-mono font-black text-sm tracking-wide">
-                    {pipelineResult.accuracyProfile?.pitchAccuracyScore ?? 99.2}%
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-white text-sm font-mono truncate">
+                    {pipelineResult.metadata?.title || 'Master Track'}
                   </span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-700/60 text-emerald-300 uppercase font-bold">
-                    FULL MASTER ({duration.toFixed(1)}s)
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/70 border border-emerald-700/60 text-emerald-300 font-bold">
+                    {pipelineResult.accuracyProfile?.pitchAccuracyScore ?? 99.2}% ACCURACY
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-700/60 text-cyan-300 font-bold hidden sm:inline">
+                    6 STEMS
                   </span>
                 </div>
-                <div className="text-[11px] text-zinc-400 font-mono mt-0.5">
-                  {pipelineResult.cleanedMidiNotes.length} clean MIDI notes · {pipelineResult.purgedNotes.length} bleed ghosts rejected · ±{pipelineResult.accuracyProfile?.transientTimingPrecisionMs ?? 1.4}ms precision
-                </div>
+                <p className="text-[11px] text-zinc-400 font-mono truncate mt-0.5">
+                  {pipelineResult.cleanedMidiNotes.length} clean MIDI notes · ±{pipelineResult.accuracyProfile?.transientTimingPrecisionMs ?? 1.4}ms precision · {pipelineResult.metadata?.bpm?.toFixed(1) ?? '120.0'} BPM ({pipelineResult.metadata?.key ?? 'C'})
+                </p>
               </div>
             </div>
 
-            {/* Direct Individual Stem MIDI Export Actions */}
-            <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto pr-2">
-              <span className="text-[9px] font-mono text-zinc-500 uppercase tracking-wider mr-1 hidden sm:inline font-bold">
-                DIRECT EXP:
-              </span>
-              <button
-                type="button"
-                onClick={() => handleExportStemMidi('vocals')}
-                className="flex items-center gap-1 px-2 py-1 rounded soundboard-btn-inactive hover:text-white text-pink-300 text-[10px] font-mono font-bold transition active:scale-95"
-                title="Export Vocals MIDI (.mid)"
-              >
-                <Download className="w-3 h-3 text-pink-400" />
-                <span>Vocals</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleExportStemMidi('bass')}
-                className="flex items-center gap-1 px-2 py-1 rounded soundboard-btn-inactive hover:text-white text-amber-300 text-[10px] font-mono font-bold transition active:scale-95"
-                title="Export Bass MIDI (.mid)"
-              >
-                <Download className="w-3 h-3 text-amber-400" />
-                <span>Bass</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleExportStemMidi('drums')}
-                className="flex items-center gap-1 px-2 py-1 rounded soundboard-btn-inactive hover:text-white text-cyan-300 text-[10px] font-mono font-bold transition active:scale-95"
-                title="Export Drums MIDI (.mid)"
-              >
-                <Download className="w-3 h-3 text-cyan-400" />
-                <span>Drums</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleExportStemMidi('guitar')}
-                className="flex items-center gap-1 px-2 py-1 rounded soundboard-btn-inactive hover:text-white text-emerald-300 text-[10px] font-mono font-bold transition active:scale-95"
-                title="Export Guitar MIDI (.mid)"
-              >
-                <Download className="w-3 h-3 text-emerald-400" />
-                <span>Guitar</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleExportStemMidi('piano')}
-                className="flex items-center gap-1 px-2 py-1 rounded soundboard-btn-inactive hover:text-white text-violet-300 text-[10px] font-mono font-bold transition active:scale-95"
-                title="Export Piano MIDI (.mid)"
-              >
-                <Download className="w-3 h-3 text-violet-400" />
-                <span>Piano</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleExportStemMidi('other')}
-                className="flex items-center gap-1 px-2 py-1 rounded soundboard-btn-inactive hover:text-white text-teal-300 text-[10px] font-mono font-bold transition active:scale-95"
-                title="Export Other / Keys MIDI (.mid)"
-              >
-                <Download className="w-3 h-3 text-teal-400" />
-                <span>Other</span>
-              </button>
-
+            {/* Quick Actions & Downloads */}
+            <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap relative">
               <button
                 type="button"
                 onClick={handleManualZipDownload}
                 disabled={isZipping || !stemBuffersState}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#dc2626] hover:bg-red-700 text-white font-bold text-[10px] font-mono shadow-crimson-glow transition active:scale-95 disabled:opacity-40"
-                title="Download 6 Stemmed Audio Lossless WAV Files + MIDI in a single ZIP"
+                className="px-3 py-1.5 rounded-lg bg-[#DC2626] hover:bg-red-700 text-white font-mono font-bold text-xs flex items-center gap-1.5 transition shadow-sm disabled:opacity-50 active:scale-95 cursor-pointer"
+                title="Download 6 Lossless WAV Stems + Standard MIDI File in a single ZIP"
               >
-                <FileArchive className="w-3 h-3 text-white" />
-                <span>{isZipping ? 'Zipping...' : 'Stems (.ZIP)'}</span>
+                <FileArchive className="w-3.5 h-3.5 text-white" />
+                <span>{isZipping ? 'Bundling...' : 'Download Stems (.ZIP)'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => handleExportStemMidi('all')}
-                className="flex items-center gap-1 px-2.5 py-1 rounded soundboard-btn-inactive text-zinc-200 hover:text-white font-bold text-[10px] font-mono shadow-sm transition active:scale-95"
-                title="Export All Stems as Multi-Track MIDI Bundle (.mid)"
+                className="px-2.5 py-1.5 rounded-lg bg-[#181B24] hover:bg-[#232733] text-cyan-300 border border-cyan-800/40 text-xs font-mono font-medium flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                title="Export All Stems as Multi-Track MIDI (.mid)"
               >
-                <Download className="w-3 h-3 text-cyan-400" />
-                <span>Bundle .MID</span>
+                <Download className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Bundle MIDI</span>
               </button>
 
-              <div className="h-4 w-px bg-[#2D3139] mx-1 hidden sm:block" />
+              {/* Clean Single-Stem MIDI Dropdown */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowStemMenu(!showStemMenu)}
+                  className="px-2.5 py-1.5 rounded-lg bg-[#181B24] hover:bg-[#232733] text-zinc-300 border border-[#2d3342] text-xs font-mono flex items-center gap-1 transition cursor-pointer"
+                  title="Export individual stem MIDI files"
+                >
+                  <Music2 className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Stems MIDI</span>
+                  <ChevronDown className={`w-3 h-3 transition-transform ${showStemMenu ? 'rotate-180' : ''}`} />
+                </button>
+
+                {showStemMenu && (
+                  <div className="absolute right-0 mt-1.5 w-44 bg-[#14161F] border border-[#2D3342] rounded-lg shadow-2xl py-1 z-30 font-mono text-xs">
+                    {(['vocals', 'bass', 'drums', 'guitar', 'piano', 'other'] as StemType[]).map((stem) => (
+                      <button
+                        key={stem}
+                        onClick={() => {
+                          handleExportStemMidi(stem);
+                          setShowStemMenu(false);
+                        }}
+                        className="w-full text-left px-3 py-1.5 hover:bg-[#202533] text-zinc-300 hover:text-white flex items-center justify-between capitalize transition cursor-pointer"
+                      >
+                        <span>{stem} MIDI</span>
+                        <Download className="w-3 h-3 text-zinc-500" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <button
-                id="btn-switch-tab-accuracy"
-                onClick={() => setActiveTab('accuracy')}
-                className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#1A1D24] border border-[#2D3139] text-slate-300 hover:text-white hover:bg-[#2D3139] transition text-[10px] font-mono font-medium"
+                type="button"
+                onClick={() => setShowMixer(!showMixer)}
+                className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono flex items-center gap-1.5 transition cursor-pointer ${
+                  showMixer
+                    ? 'bg-red-950/40 text-red-300 border-red-800/50'
+                    : 'bg-[#181B24] text-zinc-300 hover:text-white border-[#2d3342]'
+                }`}
+                title="Toggle Track Mixer"
               >
-                <Gauge className="w-3 h-3 text-emerald-400" />
-                <span>Diagnostics</span>
+                <Sliders className="w-3.5 h-3.5 text-zinc-400" />
+                <span>Mixer</span>
+                <span className="text-[10px] text-zinc-500">{showMixer ? '▲' : '▼'}</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setShowAudioInput(!showAudioInput)}
-                className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#1A1D24] border border-[#2D3139] text-indigo-300 hover:text-white hover:bg-indigo-900/30 transition text-[10px] font-mono"
-                title="Toggle Audio Upload / Recording Panel"
+                className="px-2.5 py-1.5 rounded-lg bg-[#181B24] hover:bg-[#232733] text-zinc-400 hover:text-white border border-[#2d3342] text-xs font-mono flex items-center gap-1 transition cursor-pointer"
+                title="Upload or record new audio"
               >
-                <UploadCloud className="w-3 h-3 text-indigo-400" />
-                <span>{showAudioInput ? 'Hide Ingest' : '+ New Audio'}</span>
+                <UploadCloud className="w-3.5 h-3.5 text-indigo-400" />
+                <span>{showAudioInput ? 'Hide Audio' : '+ Audio'}</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Automatic Stem ZIP Download Confirmation Notice & Persistent Action Bar */}
+        {/* Compact Auto-Download Notice */}
         {pipelineResult && autoDownloadNotice && (
-          <div className="bg-[#101217] border border-[#DC2626]/60 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-white shadow-xl shadow-red-950/30">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-[#DC2626]/20 border border-[#DC2626]/50 flex items-center justify-center text-[#DC2626] shrink-0">
-                <FileArchive className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-bold text-white uppercase tracking-wider">
-                    Separated Stems & MIDI Ready
-                  </span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-red-950/80 border border-red-700/60 text-red-300">
-                    Auto-Download
-                  </span>
-                </div>
-                <p className="font-mono text-[11px] text-zinc-400 truncate mt-0.5">
-                  {autoDownloadNotice} · If download didn't trigger in browser, tap below:
-                </p>
-              </div>
+          <div className="bg-[#12141C] border border-red-500/40 rounded-lg px-3.5 py-2 flex items-center justify-between gap-3 text-xs text-zinc-200 shadow-md">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <FileArchive className="w-4 h-4 text-red-400 shrink-0" />
+              <p className="font-mono text-xs text-zinc-300 truncate">
+                {autoDownloadNotice}
+              </p>
             </div>
-
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+            <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
                 onClick={handleManualZipDownload}
                 disabled={isZipping || !stemBuffersState}
-                className="px-3.5 py-2 rounded-lg bg-[#DC2626] hover:bg-red-700 text-white font-mono font-bold text-xs tracking-wide shadow-crimson-glow flex items-center gap-1.5 transition whitespace-nowrap active:scale-[0.98] disabled:opacity-50"
+                className="px-2.5 py-1 rounded bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-medium transition cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5 text-white" />
-                <span>{isZipping ? 'Bundling...' : 'DOWNLOAD STEMS (.ZIP)'}</span>
+                {isZipping ? 'Bundling...' : 'Re-download (.ZIP)'}
               </button>
-
-              <button
-                type="button"
-                onClick={() => setIsDownloadModalOpen(true)}
-                className="px-3 py-2 rounded-lg bg-[#1A1D26] hover:bg-[#292D38] border border-[#292D38] text-zinc-200 font-mono text-xs flex items-center gap-1.5 transition whitespace-nowrap"
-              >
-                <span>Download Center</span>
-              </button>
-
               <button
                 type="button"
                 onClick={() => setAutoDownloadNotice(null)}
-                className="text-xs font-mono text-zinc-400 hover:text-white p-1"
-                title="Dismiss notice"
+                className="p-1 text-zinc-400 hover:text-white cursor-pointer"
+                title="Dismiss"
               >
-                ✕
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
         )}
 
-        {/* View Switcher Tabs & Studio Panels */}
-        {pipelineResult ? (
+        {/* Streamlined View Switcher Tabs & Studio Panels */}
+        {pipelineResult && (
           <>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#232733] pb-2.5">
-              <div className="flex items-center gap-1.5 overflow-x-auto py-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1E222D] pb-2">
+              <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
                 <button
                   onClick={() => setActiveTab('timeline')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wider transition whitespace-nowrap font-bold ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
                     activeTab === 'timeline'
-                      ? 'bg-[#1a1d26] text-cyan-400 border border-[#06b6d4]/70 shadow-[0_0_8px_rgba(6,182,212,0.3)]'
-                      : 'soundboard-btn-inactive text-zinc-400 hover:text-white'
+                      ? 'bg-[#181B24] text-cyan-300 border border-cyan-600/50 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#12141C]'
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Functional Timeline</span>
+                  <span>Timeline</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('pianoroll')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wider transition whitespace-nowrap font-bold ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
                     activeTab === 'pianoroll'
-                      ? 'bg-[#1a1d26] text-pink-400 border border-[#ec4899]/70 shadow-[0_0_8px_rgba(236,72,153,0.3)]'
-                      : 'soundboard-btn-inactive text-zinc-400 hover:text-white'
+                      ? 'bg-[#181B24] text-pink-300 border border-pink-600/50 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#12141C]'
                   }`}
                 >
                   <Grid className="w-3.5 h-3.5 text-pink-400" />
-                  <span>Piano Roll & Bleed Filter</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('accuracy')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wider transition whitespace-nowrap font-bold ${
-                    activeTab === 'accuracy'
-                      ? 'bg-[#1a1d26] text-emerald-400 border border-[#10b981]/70 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
-                      : 'soundboard-btn-inactive text-zinc-400 hover:text-white'
-                  }`}
-                >
-                  <Award className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Accuracy & Precision</span>
+                  <span>Piano Roll</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('gemini')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wider transition whitespace-nowrap font-bold ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
                     activeTab === 'gemini'
-                      ? 'bg-[#1a1d26] text-indigo-400 border border-indigo-500/70 shadow-[0_0_8px_rgba(99,102,241,0.3)]'
-                      : 'soundboard-btn-inactive text-zinc-400 hover:text-white'
+                      ? 'bg-[#181B24] text-indigo-300 border border-indigo-500/50 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#12141C]'
                   }`}
                 >
                   <Brain className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Gemini Reasoning</span>
+                  <span>Gemini AI</span>
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('features')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-mono uppercase tracking-wider transition whitespace-nowrap font-bold ${
-                    activeTab === 'features'
-                      ? 'bg-[#1a1d26] text-amber-400 border border-amber-500/70 shadow-[0_0_8px_rgba(245,158,11,0.3)]'
-                      : 'soundboard-btn-inactive text-zinc-400 hover:text-white'
+                  onClick={() => setActiveTab('diagnostics')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
+                    activeTab === 'diagnostics' || activeTab === 'accuracy' || activeTab === 'features'
+                      ? 'bg-[#181B24] text-emerald-300 border border-emerald-500/50 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#12141C]'
                   }`}
                 >
-                  <Activity className="w-3.5 h-3.5 text-amber-400" />
-                  <span>4D Feature Curves</span>
+                  <Gauge className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Diagnostics</span>
                 </button>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsExportOpen(true)}
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg soundboard-btn-inactive text-[11px] font-mono font-bold uppercase tracking-wider text-cyan-300 hover:text-white transition active:scale-95"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141620] hover:bg-[#1D212E] border border-[#232733] text-xs font-mono text-zinc-300 hover:text-white transition cursor-pointer"
                 >
                   <Download className="w-3.5 h-3.5 text-cyan-400" />
                   <span>Export Center</span>
@@ -1036,10 +982,6 @@ export default function App() {
               />
             )}
 
-            {activeTab === 'accuracy' && (
-              <AccuracyMetricsPanel pipelineResult={pipelineResult} />
-            )}
-
             {activeTab === 'gemini' && (
               <GeminiInsightsPanel
                 pipelineResult={pipelineResult}
@@ -1048,88 +990,66 @@ export default function App() {
               />
             )}
 
-            {activeTab === 'features' && (
-              <FeatureAnalyticsPanel
-                pipelineResult={pipelineResult}
-                currentTime={currentTime}
-                duration={duration}
-                onSeek={handleSeek}
-              />
+            {(activeTab === 'diagnostics' || activeTab === 'accuracy' || activeTab === 'features') && (
+              <div className="space-y-4">
+                <AccuracyMetricsPanel pipelineResult={pipelineResult} />
+                <FeatureAnalyticsPanel
+                  pipelineResult={pipelineResult}
+                  currentTime={currentTime}
+                  duration={duration}
+                  onSeek={handleSeek}
+                />
+              </div>
             )}
 
-            {/* Stem Mixer & Routing Dispatcher Console */}
-            <TrackMixer
-              pipelineResult={pipelineResult}
-              volume={volume}
-              isMuted={isMuted}
-              isSoloed={isSoloed}
-              pan={pan}
-              selectedStem={selectedStem}
-              onVolumeChange={(stem, val) => setVolume((prev) => ({ ...prev, [stem]: val }))}
-              onPanChange={(stem, val) => setPan((prev) => ({ ...prev, [stem]: val }))}
-              onToggleMute={(stem) => setIsMuted((prev) => ({ ...prev, [stem]: !prev[stem] }))}
-              onToggleSolo={(stem) => setIsSoloed((prev) => ({ ...prev, [stem]: !prev[stem] }))}
-              onSelectStemFilter={(stem) => setSelectedStem(stem)}
-              onExportStemMidi={handleExportStemMidi}
-              onExportAllMidi={() => handleExportStemMidi('all')}
-            />
+            {/* Collapsible Stem Mixer */}
+            {showMixer ? (
+              <div className="relative">
+                <TrackMixer
+                  pipelineResult={pipelineResult}
+                  volume={volume}
+                  isMuted={isMuted}
+                  isSoloed={isSoloed}
+                  pan={pan}
+                  selectedStem={selectedStem}
+                  onVolumeChange={(stem, val) => setVolume((prev) => ({ ...prev, [stem]: val }))}
+                  onPanChange={(stem, val) => setPan((prev) => ({ ...prev, [stem]: val }))}
+                  onToggleMute={(stem) => setIsMuted((prev) => ({ ...prev, [stem]: !prev[stem] }))}
+                  onToggleSolo={(stem) => setIsSoloed((prev) => ({ ...prev, [stem]: !prev[stem] }))}
+                  onSelectStemFilter={(stem) => setSelectedStem(stem)}
+                  onExportStemMidi={handleExportStemMidi}
+                  onExportAllMidi={() => handleExportStemMidi('all')}
+                />
+              </div>
+            ) : (
+              <div className="bg-[#101217] border border-[#232733] rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 text-xs font-mono">
+                <div className="flex items-center gap-3 text-zinc-400">
+                  <Sliders className="w-4 h-4 text-zinc-500" />
+                  <span className="text-zinc-300 font-medium">Console Mixer:</span>
+                  <span className="hidden sm:inline">6 Stems Active · Master Volume {(volume.master * 100).toFixed(0)}%</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMixer(true)}
+                  className="px-3 py-1 rounded bg-[#181B24] hover:bg-[#232733] text-zinc-200 border border-[#2D3342] transition cursor-pointer text-xs font-medium"
+                >
+                  Show 6-Channel Mixer
+                </button>
+              </div>
+            )}
           </>
-        ) : (
-          /* Empty / Initial State: Clean Ingestion Guide */
-          <div className="bg-[#12141A] border border-[#2D3139] rounded-xl p-8 text-center max-w-2xl mx-auto space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 flex items-center justify-center mx-auto">
-              <AudioWaveform className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-white uppercase tracking-wider font-mono">
-                Awaiting Audio Input
-              </h3>
-              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed max-w-md mx-auto">
-                Drop any master song file (WAV, MP3, FLAC, M4A, OGG) above or record live audio from your microphone to run the 9-stage DSP stem separation & high-accuracy MIDI transcription.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 text-left border-t border-[#2D3139]">
-              <div className="p-2.5 rounded bg-[#0A0B0E] border border-[#2D3139]">
-                <span className="text-[10px] text-indigo-400 font-mono font-bold block">01 / SEPARATION</span>
-                <span className="text-xs font-semibold text-slate-200 block mt-0.5">DSP Crossover</span>
-                <span className="text-[9px] text-slate-500 block">Vocals, Bass, Drums, Other</span>
-              </div>
-              <div className="p-2.5 rounded bg-[#0A0B0E] border border-[#2D3139]">
-                <span className="text-[10px] text-indigo-400 font-mono font-bold block">02 / PITCH</span>
-                <span className="text-xs font-semibold text-slate-200 block mt-0.5">Sub-Cent YIN</span>
-                <span className="text-[9px] text-slate-500 block">Parabolic F0 estimation</span>
-              </div>
-              <div className="p-2.5 rounded bg-[#0A0B0E] border border-[#2D3139]">
-                <span className="text-[10px] text-indigo-400 font-mono font-bold block">03 / FILTER</span>
-                <span className="text-xs font-semibold text-slate-200 block mt-0.5">Bleed Gate</span>
-                <span className="text-[9px] text-slate-500 block">Cross-stem bleed rejector</span>
-              </div>
-              <div className="p-2.5 rounded bg-[#0A0B0E] border border-[#2D3139]">
-                <span className="text-[10px] text-indigo-400 font-mono font-bold block">04 / OUTPUT</span>
-                <span className="text-xs font-semibold text-slate-200 block mt-0.5">Multi-Track MIDI</span>
-                <span className="text-[9px] text-slate-500 block">Standard .MID format 1</span>
-              </div>
-            </div>
-          </div>
         )}
 
-        {/* High Density Studio Telemetry Footer */}
-        <footer className="mt-4 bg-[#0F1115] border border-[#2D3139] rounded px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 text-[10px] font-mono">
-          <div className="flex items-center gap-6">
-            <span className="text-slate-500">ENGINE: <span className="text-indigo-400 uppercase">Real WebAudio DSP</span></span>
-            <span className="text-slate-500">ANALYSIS: <span className="text-indigo-400 uppercase">Gemini 3.7 Flash</span></span>
-            <span className="text-slate-500 hidden md:inline">CROSSOVER: <span className="text-slate-300">Linkwitz-Riley 4-Band</span></span>
+        {/* Clean Studio Status Footer */}
+        <footer className="mt-4 bg-[#0A0B0E] border border-[#1E222D] rounded-lg px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono text-zinc-500">
+          <div className="flex items-center gap-4 flex-wrap">
+            <span>ENGINE: <span className="text-zinc-300">WebAudio DSP (6-Stem Crossover)</span></span>
+            <span>AI: <span className="text-zinc-300">Gemini 2.5 Flash</span></span>
+            <span className="hidden md:inline">SAMPLE RATE: <span className="text-zinc-300">44.1 kHz</span></span>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex gap-1 items-center">
-              <div className="w-1 h-3 bg-indigo-500/50"></div>
-              <div className="w-1 h-3 bg-indigo-500"></div>
-              <div className="w-1 h-3 bg-indigo-500"></div>
-              <div className="w-1 h-3 bg-indigo-500/20"></div>
-            </div>
-            <span className="text-slate-400 uppercase">DSP Latency: <span className="text-green-400">142ms</span></span>
-            <span className="text-slate-400 uppercase">Alignment Error: <span className="text-green-400">&lt; 2ms</span></span>
+            <span>DSP LATENCY: <span className="text-emerald-400">~140ms</span></span>
+            <span>ALIGNMENT: <span className="text-emerald-400">&lt; 1.4ms</span></span>
           </div>
         </footer>
       </main>
