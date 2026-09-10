@@ -20,6 +20,10 @@ import {
   AlertTriangle,
   Loader2,
   RefreshCw,
+  Github,
+  GitBranch,
+  Play,
+  Clock,
 } from 'lucide-react';
 
 interface AndroidPackageModalProps {
@@ -58,11 +62,37 @@ interface AndroidStatus {
   timestamp: string;
 }
 
+interface GitHubStatus {
+  authenticated: boolean;
+  user?: {
+    login: string;
+    avatarUrl: string;
+  };
+  permissions?: {
+    admin?: boolean;
+    push?: boolean;
+    pull?: boolean;
+  };
+  latestRun?: {
+    id: number;
+    name: string;
+    status: string;
+    conclusion: string;
+    createdAt: string;
+    htmlUrl: string;
+  } | null;
+  error?: string;
+}
+
 export const AndroidPackageModal: React.FC<AndroidPackageModalProps> = ({ onClose }) => {
   const [copiedSha, setCopiedSha] = useState(false);
   const [copiedGradle, setCopiedGradle] = useState(false);
   const [copiedAdb, setCopiedAdb] = useState(false);
+  const [copiedGit, setCopiedGit] = useState(false);
   const [status, setStatus] = useState<AndroidStatus | null>(null);
+  const [gitStatus, setGitStatus] = useState<GitHubStatus | null>(null);
+  const [dispatchingBuild, setDispatchingBuild] = useState(false);
+  const [dispatchResult, setDispatchResult] = useState<{ success: boolean; message: string; runsUrl?: string } | null>(null);
 
   // Download states to prevent Android OS DownloadManager cookie loss
   const [downloading, setDownloading] = useState(false);
@@ -76,10 +106,40 @@ export const AndroidPackageModal: React.FC<AndroidPackageModalProps> = ({ onClos
       .catch((err) => console.error('Error fetching android status:', err));
   };
 
+  const fetchGitStatus = () => {
+    fetch('/api/github')
+      .then((res) => res.json())
+      .then((data: GitHubStatus) => setGitStatus(data))
+      .catch((err) => console.error('Error fetching git status:', err));
+  };
+
   useEffect(() => {
     fetchStatus();
+    fetchGitStatus();
   }, []);
 
+  const handleDispatchBuild = async () => {
+    setDispatchingBuild(true);
+    setDispatchResult(null);
+    try {
+      const res = await fetch('/api/github/dispatch-build', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setDispatchResult({ success: true, message: 'Cloud APK build successfully queued on GitHub Actions!', runsUrl: data.runsUrl });
+        setTimeout(() => fetchGitStatus(), 3000);
+      } else {
+        setDispatchResult({ success: false, message: data.error || 'Failed to dispatch cloud build' });
+      }
+    } catch (err: any) {
+      setDispatchResult({ success: false, message: err?.message || 'Network error triggering cloud build' });
+    } finally {
+      setDispatchingBuild(false);
+    }
+  };
+
+  const gitRepoUrl = 'https://github.com/RyanrealAF/stemanalysiser';
+  const gitCloneCmd = 'git clone https://github.com/RyanrealAF/stemanalysiser.git';
+  const gitAndroidApiUrl = 'https://github.com/RyanrealAF/stemanalysiser/tree/main/android/stemflow-api';
   const apkSha = status?.apk?.sha256 || 'b803bf706952203adbbb63d86f5925c23b2be5d7753fe86daf7d9aa1f59537d8';
   const gradleSnippet = `// build.gradle (app module)
 dependencies {
@@ -88,7 +148,7 @@ dependencies {
 }`;
   const adbCommand = `adb install -r StemFlow-AI-debug.apk`;
 
-  const handleCopy = (text: string, type: 'sha' | 'gradle' | 'adb') => {
+  const handleCopy = (text: string, type: 'sha' | 'gradle' | 'adb' | 'git') => {
     navigator.clipboard.writeText(text);
     if (type === 'sha') {
       setCopiedSha(true);
@@ -96,6 +156,9 @@ dependencies {
     } else if (type === 'gradle') {
       setCopiedGradle(true);
       setTimeout(() => setCopiedGradle(false), 2000);
+    } else if (type === 'git') {
+      setCopiedGit(true);
+      setTimeout(() => setCopiedGit(false), 2000);
     } else {
       setCopiedAdb(true);
       setTimeout(() => setCopiedAdb(false), 2000);
@@ -419,13 +482,164 @@ dependencies {
             </div>
           </div>
 
+          {/* Official Git Repository & Android Source Code */}
+          <div className="p-3.5 rounded-lg bg-gradient-to-br from-[#0D131F] to-[#0A0D14] border border-cyan-800/60 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Github className="w-4 h-4 text-white" />
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+                  Official Git Repository
+                </span>
+                <span className="text-[9px] px-2 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-700/50 font-mono">
+                  RyanrealAF/stemanalysiser
+                </span>
+              </div>
+              <a
+                href={gitRepoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 flex items-center gap-1 hover:underline"
+              >
+                <span>Open on GitHub</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+
+            <p className="text-[11px] text-slate-300 font-mono leading-relaxed">
+              The full Android native codebase, Gradle build system (<code className="text-cyan-300">android/build.gradle</code>), packaged API module (<code className="text-cyan-300">android/stemflow-api</code>), and binary artifacts are version-controlled in the official repository.
+            </p>
+
+            {/* Git Clone Command */}
+            <div className="flex items-center justify-between bg-black/70 p-2 rounded border border-slate-800 text-[10px] font-mono">
+              <div className="flex items-center gap-2 text-slate-300 truncate">
+                <GitBranch className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="text-slate-400 select-none">$</span>
+                <code className="text-cyan-300 truncate select-all">{gitCloneCmd}</code>
+              </div>
+              <button
+                onClick={() => handleCopy(gitCloneCmd, 'git')}
+                className="px-2 py-1 rounded bg-[#1A1D24] hover:bg-[#252A35] text-slate-300 text-[10px] font-mono flex items-center gap-1 border border-slate-700 shrink-0 transition cursor-pointer"
+                title="Copy git clone command"
+              >
+                {copiedGit ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                <span>{copiedGit ? 'Copied' : 'Copy'}</span>
+              </button>
+            </div>
+
+            {/* Quick Repository Links & CI Status */}
+            <div className="flex flex-wrap items-center gap-2 pt-1 text-[10px] font-mono">
+              <a
+                href={gitAndroidApiUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 rounded bg-[#162035] hover:bg-[#1E2C48] text-cyan-300 border border-cyan-800/60 flex items-center gap-1.5 transition"
+              >
+                <FileCode className="w-3 h-3 text-cyan-400" />
+                <span>Browse Android API Source (/android/stemflow-api)</span>
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+              <a
+                href={`${gitRepoUrl}/blob/main/.github/workflows/build-apk.yaml`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 rounded bg-[#1A1D26] hover:bg-[#252A35] text-slate-300 border border-slate-700 flex items-center gap-1.5 transition"
+              >
+                <Terminal className="w-3 h-3 text-emerald-400" />
+                <span>CI/CD Workflow (build-apk.yaml)</span>
+                <ExternalLink className="w-2.5 h-2.5" />
+              </a>
+            </div>
+
+            {/* Authenticated GitHub Token & Cloud Build Trigger */}
+            <div className="p-2.5 rounded bg-black/50 border border-emerald-900/60 space-y-2">
+              <div className="flex items-center justify-between flex-wrap gap-2 text-[11px] font-mono">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-emerald-400 font-bold">GitHub Token Authenticated:</span>
+                  <span className="text-white font-semibold">{gitStatus?.user?.login || 'RyanrealAF'}</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50 uppercase">
+                    Admin / Push
+                  </span>
+                </div>
+
+                {gitStatus?.latestRun && (
+                  <a
+                    href={gitStatus.latestRun.htmlUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-zinc-400 hover:text-white flex items-center gap-1"
+                  >
+                    <Clock className="w-3 h-3 text-zinc-400" />
+                    <span>Last CI Run: #{gitStatus.latestRun.id.toString().slice(-5)}</span>
+                    <span className="text-emerald-400 font-bold uppercase">({gitStatus.latestRun.conclusion || gitStatus.latestRun.status})</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                )}
+              </div>
+
+              {/* Action: Trigger Cloud APK Build via GitHub Actions */}
+              <div className="flex items-center justify-between gap-3 pt-1 border-t border-zinc-800">
+                <p className="text-[10px] text-zinc-400 font-mono">
+                  Trigger an automated cloud rebuild of <code className="text-cyan-300">StemFlow-AI-debug.apk</code> via GitHub Actions:
+                </p>
+                <button
+                  onClick={handleDispatchBuild}
+                  disabled={dispatchingBuild}
+                  className="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 transition shrink-0 cursor-pointer shadow-sm"
+                >
+                  {dispatchingBuild ? (
+                    <>
+                      <Loader2 className="w-3 h-3 animate-spin text-white" />
+                      <span>Triggering...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3 h-3 text-white fill-white" />
+                      <span>Trigger Cloud APK Build</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {dispatchResult && (
+                <div
+                  className={`p-2 rounded text-[10px] font-mono flex items-center justify-between gap-2 ${
+                    dispatchResult.success
+                      ? 'bg-emerald-950/80 border border-emerald-500/50 text-emerald-300'
+                      : 'bg-red-950/80 border border-red-500/50 text-red-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    {dispatchResult.success ? (
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                    )}
+                    <span>{dispatchResult.message}</span>
+                  </div>
+                  {dispatchResult.runsUrl && (
+                    <a
+                      href={dispatchResult.runsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline font-bold text-white hover:text-emerald-200 shrink-0 flex items-center gap-0.5"
+                    >
+                      <span>View Live Build</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Installation Instructions */}
           <div className="p-3.5 rounded-lg bg-[#0A0D14] border border-[#2D3139] space-y-2">
             <h4 className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
               <Terminal className="w-3.5 h-3.5 text-indigo-400" />
               Installation & Deployment Instructions
             </h4>
-
+            
             <div className="space-y-1.5 text-[11px] font-mono text-slate-400">
               <p>
                 <strong className="text-white">Method 1: Direct Android Phone Install:</strong> Download the APK directly onto any Android device running Android 7.0+ (API 24+) through Chrome/Firefox. Tap the downloaded file in your notification drawer or Files app to install (allow "Install unknown apps" when prompted).
@@ -461,3 +675,4 @@ dependencies {
     </div>
   );
 };
+

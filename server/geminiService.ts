@@ -78,15 +78,25 @@ ATMOSPHERE:
 `;
 
 let geminiClient: GoogleGenAI | null = null;
+let activeApiKey: string | null = null;
 
 function getGeminiClient(): GoogleGenAI {
-  const apiKey = process.env.GEMINI_API_KEY;
+  // Prioritize user-provided GEMINI_API_TOKEN, falling back to GEMINI_API_KEY
+  const apiKey = process.env.GEMINI_API_TOKEN || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not configured on the server. Please provide an active Gemini API key in settings.');
+    throw new Error(
+      'Neither GEMINI_API_TOKEN nor GEMINI_API_KEY is configured on the server. Please provide an active Gemini API key/token in settings.'
+    );
   }
 
-  if (!geminiClient) {
+  if (!geminiClient || activeApiKey !== apiKey) {
+    activeApiKey = apiKey;
     geminiClient = new GoogleGenAI({ apiKey });
+    console.log(
+      `[Gemini Engine] Initialized Gemini SDK client with ${
+        process.env.GEMINI_API_TOKEN ? 'GEMINI_API_TOKEN' : 'GEMINI_API_KEY'
+      } (length: ${apiKey.length})`
+    );
   }
   return geminiClient;
 }

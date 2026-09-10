@@ -23,10 +23,12 @@ async function startServer() {
 
   // API Route: Health Check
   app.get('/api/health', (req, res) => {
+    const hasToken = Boolean(process.env.GEMINI_API_TOKEN || process.env.GEMINI_API_KEY);
     res.json({
       status: 'ok',
       service: 'StemFlow AI Audio Intelligence Server',
-      geminiKeyConfigured: Boolean(process.env.GEMINI_API_KEY),
+      geminiKeyConfigured: hasToken,
+      authSource: process.env.GEMINI_API_TOKEN ? 'GEMINI_API_TOKEN' : (process.env.GEMINI_API_KEY ? 'GEMINI_API_KEY' : 'none'),
       timestamp: new Date().toISOString(),
     });
   });
@@ -186,6 +188,14 @@ async function startServer() {
     res.json({
       status: 'ready',
       packaged: apkExists && aarExists,
+      repository: {
+        git: 'https://github.com/RyanrealAF/stemanalysiser.git',
+        web: 'https://github.com/RyanrealAF/stemanalysiser',
+        androidApiModule: 'https://github.com/RyanrealAF/stemanalysiser/tree/main/android/stemflow-api',
+        apkArtifact: 'https://github.com/RyanrealAF/stemanalysiser/raw/main/public/app-debug.apk',
+        aarArtifact: 'https://github.com/RyanrealAF/stemanalysiser/raw/main/public/aar/stemflow-api-release.aar',
+        ciBuildWorkflow: 'https://github.com/RyanrealAF/stemanalysiser/blob/main/.github/workflows/build-apk.yaml',
+      },
       apk: {
         fileName: 'StemFlow-AI-debug.apk',
         downloadUrl: '/api/download-apk',
@@ -214,6 +224,102 @@ async function startServer() {
       targetSdkVersion: 35,
       timestamp: new Date().toISOString(),
     });
+  });
+
+  // API Route: Canonical GitHub Repository Information & Status
+  app.get(['/api/github', '/api/repo-info'], async (req, res) => {
+    const token = process.env.GITHUB_TOKEN || process.env.GH_API_TOKEN;
+    const baseInfo = {
+      repositoryUrl: 'https://github.com/RyanrealAF/stemanalysiser',
+      cloneUrl: 'https://github.com/RyanrealAF/stemanalysiser.git',
+      androidModuleUrl: 'https://github.com/RyanrealAF/stemanalysiser/tree/main/android/stemflow-api',
+      ciBuildUrl: 'https://github.com/RyanrealAF/stemanalysiser/blob/main/.github/workflows/build-apk.yaml',
+      description: 'StemFlow AI - Multi-stem separation, audio feature extraction, Gemini functional analysis, and packaged Android API',
+      tokenConfigured: Boolean(token),
+    };
+
+    if (!token) {
+      return res.json({ ...baseInfo, authenticated: false });
+    }
+
+    try {
+      const headers = { Authorization: `Bearer ${token}`, 'User-Agent': 'StemFlow-AI' };
+      const [userRes, repoRes, runsRes] = await Promise.all([
+        fetch('https://api.github.com/user', { headers }),
+        fetch('https://api.github.com/repos/RyanrealAF/stemanalysiser', { headers }),
+        fetch('https://api.github.com/repos/RyanrealAF/stemanalysiser/actions/runs?per_page=3', { headers }),
+      ]);
+
+      const [userData, repoData, runsData] = await Promise.all([
+        userRes.json(),
+        repoRes.json(),
+        runsRes.json(),
+      ]);
+
+      const latestRun = runsData.workflow_runs?.[0] ? {
+        id: runsData.workflow_runs[0].id,
+        name: runsData.workflow_runs[0].name,
+        status: runsData.workflow_runs[0].status,
+        conclusion: runsData.workflow_runs[0].conclusion,
+        createdAt: runsData.workflow_runs[0].created_at,
+        htmlUrl: runsData.workflow_runs[0].html_url,
+      } : null;
+
+      res.json({
+        ...baseInfo,
+        authenticated: true,
+        user: {
+          login: userData.login,
+          avatarUrl: userData.avatar_url,
+        },
+        permissions: repoData.permissions || {},
+        latestRun,
+      });
+    } catch (err: any) {
+      res.json({
+        ...baseInfo,
+        authenticated: true,
+        error: err?.message || 'Could not fetch live GitHub data',
+      });
+    }
+  });
+
+  // API Route: Trigger GitHub Actions Android APK Build
+  app.post('/api/github/dispatch-build', async (req, res) => {
+    const token = process.env.GITHUB_TOKEN || process.env.GH_API_TOKEN;
+    if (!token) {
+      return res.status(401).json({ error: 'GITHUB_TOKEN is not configured on the server.' });
+    }
+
+    try {
+      const dispatchRes = await fetch(
+        'https://api.github.com/repos/RyanrealAF/stemanalysiser/actions/workflows/build-apk.yaml/dispatches',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'User-Agent': 'StemFlow-AI',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ref: 'main' }),
+        }
+      );
+
+      if (dispatchRes.status === 204 || dispatchRes.ok) {
+        res.json({
+          success: true,
+          message: 'Android APK CI/CD build successfully triggered on GitHub Actions.',
+          runsUrl: 'https://github.com/RyanrealAF/stemanalysiser/actions',
+        });
+      } else {
+        const errorText = await dispatchRes.text();
+        res.status(dispatchRes.status).json({
+          error: `GitHub API responded with status ${dispatchRes.status}: ${errorText}`,
+        });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || 'Failed to dispatch workflow run' });
+    }
   });
 
   // Vite middleware for development vs Static file serving in production

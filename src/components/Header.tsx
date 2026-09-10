@@ -16,6 +16,7 @@ import {
   Volume2,
   VolumeX,
   Smartphone,
+  Github,
 } from 'lucide-react';
 import { SongPipelineResult } from '../types';
 import { isAndroidPlatform } from '../lib/androidBridge';
@@ -103,6 +104,16 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Quick Action buttons on mobile */}
           <div className="flex items-center gap-1.5 md:hidden">
+            <a
+              href="https://github.com/RyanrealAF/stemanalysiser"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 rounded bg-[#131722] hover:bg-[#1C2333] text-zinc-300 hover:text-white border border-[#2D3548] transition relative"
+              title="Official GitHub Repo: RyanrealAF/stemanalysiser (Token Authenticated)"
+            >
+              <Github className="w-3.5 h-3.5 text-zinc-300" />
+              <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-400 ring-2 ring-[#131722]" />
+            </a>
             <button
               onClick={onOpenAndroidPackage}
               className="px-2.5 py-1 rounded bg-[#DC2626] hover:bg-red-700 text-[10px] font-mono font-bold text-white shadow-crimson-glow transition uppercase tracking-wider flex items-center gap-1"
@@ -198,6 +209,20 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Action Bar */}
         <div className="hidden md:flex items-center gap-2">
+          <a
+            href="https://github.com/RyanrealAF/stemanalysiser"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-[#131722] hover:bg-[#1C2333] text-xs font-mono text-zinc-300 hover:text-white border border-[#2D3548] transition cursor-pointer"
+            title="Official Git Repository: RyanrealAF/stemanalysiser (Authenticated: RyanrealAF)"
+          >
+            <span className="relative flex items-center">
+              <Github className="w-3.5 h-3.5 text-zinc-300" />
+              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            </span>
+            <span className="hidden lg:inline">Git</span>
+          </a>
+
           <button
             onClick={onOpenAndroidPackage}
             className="flex items-center gap-2 px-3 py-1.5 rounded bg-[#DC2626] hover:bg-red-700 text-xs font-mono font-bold uppercase tracking-wider text-white shadow-crimson-glow transition"
