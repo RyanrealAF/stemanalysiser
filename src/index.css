@@ -23,17 +23,129 @@
     overflow-x: hidden;
   }
 
-  code, kbd, samp, pre {
+  code, kbd, samp, pre, .font-mono {
     font-family: 'JetBrains Mono', monospace;
   }
 }
 
-/* Studio Distressed Card & Element Styles */
+/* Gritty Distressed Texture Overlay & Card Styles */
 .distressed-card {
   background-color: #101217;
   border: 1px solid #292d38;
   position: relative;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.distressed-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 0);
+  background-size: 8px 8px;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Crimson Blood Drip Details */
+.blood-drip-border {
+  border-bottom: 3px solid #dc2626;
+  position: relative;
+}
+
+/* Lexicon Stencil Typography Header */
+.brand-stencil {
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+}
+
+/* Rotary Knob Dial Simulation */
+.knob-dial {
+  transition: transform 0.1s ease-out;
+}
+
+/* Custom Range Sliders */
+input[type=range] {
+  -webkit-appearance: none;
+  background: transparent;
+}
+input[type=range]:focus {
+  outline: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 6px;
+  cursor: pointer;
+  background: #1a1d26;
+  border-radius: 3px;
+  border: 1px solid #292d38;
+}
+input[type=range]::-webkit-slider-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 2px;
+  background: #dc2626;
+  cursor: pointer;
+  -webkit-appearance: none;
+  margin-top: -6px;
+  box-shadow: 0 0 10px rgba(220, 38, 38, 0.8);
+  border: 1px solid #ff6b6b;
+}
+
+/* Vertical Fader Track */
+.fader-vertical {
+  writing-mode: bt-lr;
+  -webkit-appearance: slider-vertical;
+  width: 8px;
+  height: 140px;
+  accent-color: #dc2626;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #07080a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #292d38;
+  border-radius: 4px;
+  border: 1px solid #101217;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #dc2626;
+}
+
+/* Glow Shadows */
+.shadow-crimson-glow {
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.35);
+}
+
+.shadow-cyan-glow {
+  box-shadow: 0 0 20px rgba(6, 182, 212, 0.30);
+}
+
+/* Pulse Glow Animations */
+@keyframes bloodPulse {
+  0%, 100% { box-shadow: 0 0 5px rgba(220, 38, 38, 0.4); }
+  50% { box-shadow: 0 0 20px rgba(220, 38, 38, 0.9); }
+}
+.animate-blood-pulse {
+  animation: bloodPulse 2s infinite;
+}
+
+/* Custom Hide Scrollbar Utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .hd-card {
@@ -58,35 +170,6 @@
   letter-spacing: 0.08em;
 }
 
-/* High Density Studio Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #07080a;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #292d38;
-  border-radius: 3px;
-  border: 1px solid #101217;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #dc2626;
-}
-
-/* Glow Shadows */
-.shadow-crimson-glow {
-  box-shadow: 0 0 20px rgba(220, 38, 38, 0.35);
-}
-
-.shadow-cyan-glow {
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.30);
-}
-
 /* =========================================================================
    HARDWARE SOUNDBOARD CONSOLE TEXTURES & CHASSIS STYLING
    ========================================================================= */
@@ -108,7 +191,6 @@
   background-size: 24px 24px, 24px 24px, 6px 6px, 100% 100%;
 }
 
-/* Brushed anodized aluminum console chassis faceplate */
 .soundboard-chassis {
   background:
     repeating-linear-gradient(
@@ -129,7 +211,6 @@
   position: relative;
 }
 
-/* Extruded console channel strip frame */
 .soundboard-channel-strip {
   background:
     repeating-linear-gradient(
@@ -151,7 +232,6 @@
   position: relative;
 }
 
-/* Master console strip (SSL / Neve center section aesthetic) */
 .soundboard-master-strip {
   background:
     repeating-linear-gradient(
@@ -173,7 +253,6 @@
   position: relative;
 }
 
-/* Hardware countersunk hex/philips bolt for rack chassis corners */
 .soundboard-bolt {
   width: 10px;
   height: 10px;
@@ -205,7 +284,6 @@
   border-color: #120e05;
 }
 
-/* Studio console scribble strip (channel tape / backlit LCD label) */
 .soundboard-scribble-strip {
   background: linear-gradient(180deg, #1a1e28 0%, #10131a 100%);
   border: 1px solid #2d3342;
@@ -216,7 +294,6 @@
     0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-/* Studio console white masking tape label */
 .soundboard-tape {
   background: #ece8dd;
   color: #0e1014;
@@ -229,7 +306,6 @@
   letter-spacing: -0.02em;
 }
 
-/* Recessed soundboard fader trough / vertical track groove */
 .soundboard-fader-slot {
   background: #040507;
   border: 1px solid #1a1e27;
@@ -254,7 +330,6 @@
   border-right: 1px solid #232733;
 }
 
-/* Chunky tactile hardware fader handle with horizontal grip ribs */
 .soundboard-fader-handle {
   background: linear-gradient(180deg, #3a3f4c 0%, #232630 20%, #1a1c23 50%, #242732 80%, #343946 100%);
   border: 1px solid #485061;
@@ -281,7 +356,6 @@
     inset 0 -1px 0 rgba(0, 0, 0, 0.6);
 }
 
-/* Center registration notch for fader handle */
 .soundboard-fader-notch {
   width: 100%;
   height: 2px;
@@ -289,7 +363,6 @@
   box-shadow: 0 0 3px rgba(255, 255, 255, 0.8), 0 1px 1px rgba(0, 0, 0, 0.8);
 }
 
-/* Tactile knurled rotary knob */
 .soundboard-rotary-knob {
   background: radial-gradient(circle at 35% 35%, #353b49 0%, #1e222b 60%, #12141a 100%);
   border: 1.5px solid #3e4556;
@@ -303,7 +376,6 @@
   position: relative;
 }
 
-/* Dot-matrix ventilation mesh / rack speaker grille texture */
 .soundboard-mesh-grille {
   background-color: #0b0c10;
   background-image: radial-gradient(#1f232d 1px, transparent 1px);
@@ -312,7 +384,6 @@
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.9);
 }
 
-/* Studio console luxury walnut / mahogany end-cheeks */
 .soundboard-wood-cheek {
   background: linear-gradient(90deg, #240e06 0%, #38180a 25%, #461f0d 50%, #38180a 75%, #1e0b04 100%);
   border: 1px solid #572710;
@@ -322,7 +393,6 @@
     0 8px 24px rgba(0, 0, 0, 0.8);
 }
 
-/* Tactile push button - Solo active */
 .soundboard-btn-solo-active {
   background: linear-gradient(180deg, #fbbf24 0%, #d97706 100%) !important;
   color: #0f1117 !important;
@@ -333,7 +403,6 @@
     inset 0 -1px 2px rgba(0, 0, 0, 0.4) !important;
 }
 
-/* Tactile push button - Mute active */
 .soundboard-btn-mute-active {
   background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%) !important;
   color: #ffffff !important;
@@ -344,7 +413,6 @@
     inset 0 -1px 2px rgba(0, 0, 0, 0.5) !important;
 }
 
-/* Inactive mechanical console button */
 .soundboard-btn-inactive {
   background: linear-gradient(180deg, #232732 0%, #151820 100%);
   border: 1px solid #333847;
