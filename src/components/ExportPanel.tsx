@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { MidiExportOptions, SongPipelineResult, StemType } from '../types';
 import { DEFAULT_EXPORT_OPTIONS, downloadMidiBlob, generateMidiFile } from '../lib/midiExport';
-import { downloadStemmedAudioZip } from '../lib/audioExport';
+import { downloadStemmedAudioZip, triggerBlobDownload } from '../lib/audioExport';
 import { isAndroidPlatform, exportMidiToAndroid } from '../lib/androidBridge';
 
 interface ExportPanelProps {
@@ -118,26 +118,12 @@ export const ExportPanel: React.FC<ExportPanelProps> = ({
     };
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${metadata.title.toLowerCase().replace(/\s+/g, '_')}_analysis_report.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    triggerBlobDownload(blob, `${metadata.title.toLowerCase().replace(/\s+/g, '_')}_analysis_report.json`);
   };
 
   const handleExportMidiNotesJson = () => {
     const blob = new Blob([JSON.stringify(cleanedMidiNotes, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${metadata.title.toLowerCase().replace(/\s+/g, '_')}_midi_notes.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    triggerBlobDownload(blob, `${metadata.title.toLowerCase().replace(/\s+/g, '_')}_midi_notes.json`);
   };
 
   const stemsList: { type: StemType; label: string; icon: string; filename: string }[] = [

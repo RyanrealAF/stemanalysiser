@@ -4,6 +4,259 @@
  */
 
 import { GrooveTemplate, MidiNote, SectionAnalysis, StemFeatureData, StemRole, StemType, TranscriptionMethod } from '../types';
+import { estimateFundamentalPitch, computeRms } from './audioDsp';
+
+/**
+ * Performs signal-driven audio-to-MIDI transcription across all 6 HTDemucs stems
+ */
+export function transcribeAudioStemsToMidiNotes(
+  stemBuffers: Record<StemType, AudioBuffer>,
+  songDuration: number,
+  bpm: number
+): MidiNote[] {
+  const rawNotes: MidiNote[] = [];
+  let noteIdCounter = 1;
+
+  // 1. DRUMS STEM TRANSCRIPTION (Spectral Flux Onset Detection)
+  if (stemBuffers.drums) {
+    const drumBuffer = stemBuffers.drums;
+    const channelData = drumBuffer.getChannelData(0);
+    const sampleRate = drumBuffer.sampleRate;
+    const hopSize = Math.floor(sampleRate * 0.015); // 15ms hop
+    const numHops = Math.floor(channelData.length / hopSize);
+
+    let prevRms = 0;
+    const onsetFluxes: { time: number; sampleIndex: number; flux: number; rms: number }[] = [];
+
+    for (let h = 0; h < numHops; h++) {
+      const s0 = h * hopSize;
+      const s1 = Math.min(channelData.length, s0 + hopSize);
+      const rms = computeRms(channelData, s0, s1);
+      const flux = Math.max(0, rms - prevRms);
+      prevRms = rms;
+      if (flux > 0.008 && rms > 0.015) {
+        onsetFluxes.push({
+          time: Number((s0 / sampleRate).toFixed(3)),
+          sampleIndex: s0,
+          flux,
+          rms,
+        });
+      }
+    }
+
+    let lastOnsetTime = -0.08;
+    for (const onset of onsetFluxes) {
+      if (onset.time - lastOnsetTime < 0.06) continue; // 60ms refractory period
+      lastOnsetTime = onset.time;
+
+      const s0 = onset.sampleIndex;
+      const s1 = Math.min(channelData.length, s0 + Math.floor(sampleRate * 0.03));
+
+      let zc = 0;
+      for (let i = s0; i < s1 - 1; i++) {
+        const val = channelData[i];
+        const nextVal = channelData[i + 1];
+        if ((val >= 0 && nextVal < 0) || (val < 0 && nextVal >= 0)) zc++;
+      }
+
+      const zcr = (zc / Math.max(1, s1 - s0)) * (sampleRate / 2);
+      let pitch = 38;
+      let noteName = 'D1';
+
+      if (zcr < 600) {
+        pitch = 36; // Kick drum
+        noteName = 'C1';
+      } else if (zcr > 3200) {
+        pitch = 42; // Closed Hi-Hat
+        noteName = 'F#1';
+      } else {
+        pitch = 38; // Snare
+        noteName = 'D1';
+      }
+
+      const velocity = Math.min(127, Math.max(40, Math.round(30 + onset.rms * 250)));
+
+      rawNotes.push({
+        id: `note-${noteIdCounter++}`,
+        stem: 'drums',
+        pitch,
+        noteName,
+        startTime: onset.time,
+        endTime: Number((onset.time + 0.15).toFixed(3)),
+        duration: 0.15,
+        velocity,
+        confidence: Number(Math.min(0.99, 0.6 + onset.flux * 5).toFixed(2)),
+        method: 'onset_drum_tracking',
+        role: 'percussion',
+        section: 'intro',
+        quantized: false,
+      });
+    }
+  }
+
+  // Helper for monophonic pitch tracking (Bass, Vocals, Guitar)
+  const transcribeMonophonicStem = (
+    stem: StemType,
+    minPitch: number,
+    maxPitch: number,
+    minFreqHz: number,
+    maxFreqHz: number,
+    role: StemRole,
+    method: TranscriptionMethod
+  ) => {
+    const buffer = stemBuffers[stem];
+    if (!buffer) return;
+
+    const channelData = buffer.getChannelData(0);
+    const sampleRate = buffer.sampleRate;
+    const hopSize = Math.floor(sampleRate * 0.02); // 20ms hop
+    const windowSize = Math.floor(sampleRate * 0.08); // 80ms window
+    const numHops = Math.floor((channelData.length - windowSize) / hopSize);
+
+    let activeNoteStart = -1;
+    let activePitch = -1;
+    let activePitches: number[] = [];
+    let activeConfidences: number[] = [];
+    let activeEnergies: number[] = [];
+
+    const finalizeNote = (timeSec: number) => {
+      if (activeNoteStart < 0 || activePitches.length === 0) return;
+      const noteEnd = Number((timeSec + 0.04).toFixed(3));
+      const noteDur = Number(Math.max(0.08, noteEnd - activeNoteStart).toFixed(3));
+
+      const sortedPitches = [...activePitches].sort((a, b) => a - b);
+      const medianPitch = sortedPitches[Math.floor(sortedPitches.length / 2)];
+      const avgConf = activeConfidences.reduce((a, b) => a + b, 0) / activeConfidences.length;
+      const avgRms = activeEnergies.reduce((a, b) => a + b, 0) / activeEnergies.length;
+      const velocity = Math.min(127, Math.max(45, Math.round(35 + avgRms * 220)));
+
+      rawNotes.push({
+        id: `note-${noteIdCounter++}`,
+        stem,
+        pitch: medianPitch,
+        noteName: midiPitchToNoteName(medianPitch),
+        startTime: activeNoteStart,
+        endTime: noteEnd,
+        duration: noteDur,
+        velocity,
+        confidence: Number(Math.min(0.99, avgConf).toFixed(2)),
+        method,
+        role,
+        section: 'intro',
+        quantized: false,
+      });
+
+      activeNoteStart = -1;
+      activePitches = [];
+      activeConfidences = [];
+      activeEnergies = [];
+    };
+
+    for (let h = 0; h < numHops; h++) {
+      const s0 = h * hopSize;
+      const s1 = s0 + windowSize;
+      const timeSec = Number((s0 / sampleRate).toFixed(3));
+      const rms = computeRms(channelData, s0, s1);
+
+      if (rms < 0.015) {
+        if (activeNoteStart >= 0 && activePitches.length >= 2) {
+          finalizeNote(timeSec);
+        } else {
+          activeNoteStart = -1;
+          activePitches = [];
+        }
+        continue;
+      }
+
+      const pitchRes = estimateFundamentalPitch(channelData, s0, s1, sampleRate, minFreqHz, maxFreqHz);
+
+      if (pitchRes.confidence > 0.32 && pitchRes.pitchMidi >= minPitch && pitchRes.pitchMidi <= maxPitch) {
+        const roundedPitch = pitchRes.pitchMidi;
+
+        if (activeNoteStart < 0) {
+          activeNoteStart = timeSec;
+          activePitch = roundedPitch;
+          activePitches = [roundedPitch];
+          activeConfidences = [pitchRes.confidence];
+          activeEnergies = [rms];
+        } else if (Math.abs(roundedPitch - activePitch) <= 1.5) {
+          activePitches.push(roundedPitch);
+          activeConfidences.push(pitchRes.confidence);
+          activeEnergies.push(rms);
+        } else {
+          if (activePitches.length >= 2) {
+            finalizeNote(timeSec);
+          }
+          activeNoteStart = timeSec;
+          activePitch = roundedPitch;
+          activePitches = [roundedPitch];
+          activeConfidences = [pitchRes.confidence];
+          activeEnergies = [rms];
+        }
+      } else {
+        if (activeNoteStart >= 0 && activePitches.length >= 2) {
+          finalizeNote(timeSec);
+        } else {
+          activeNoteStart = -1;
+          activePitches = [];
+        }
+      }
+    }
+  };
+
+  transcribeMonophonicStem('bass', 28, 60, 30, 300, 'foundation', 'monophonic_autocorrelation');
+  transcribeMonophonicStem('vocals', 52, 88, 120, 1000, 'lead', 'polyphonic_salience');
+  transcribeMonophonicStem('guitar', 45, 84, 90, 800, 'lead', 'polyphonic_salience');
+
+  const transcribePolyphonicStem = (stem: StemType, role: StemRole) => {
+    const buffer = stemBuffers[stem];
+    if (!buffer) return;
+
+    const channelData = buffer.getChannelData(0);
+    const sampleRate = buffer.sampleRate;
+    const hopSize = Math.floor(sampleRate * 0.25);
+    const windowSize = Math.floor(sampleRate * 0.35);
+    const numHops = Math.floor((channelData.length - windowSize) / hopSize);
+
+    for (let h = 0; h < numHops; h++) {
+      const s0 = h * hopSize;
+      const s1 = s0 + windowSize;
+      const timeSec = Number((s0 / sampleRate).toFixed(3));
+      const rms = computeRms(channelData, s0, s1);
+
+      if (rms < 0.02) continue;
+
+      const primaryPitchRes = estimateFundamentalPitch(channelData, s0, s1, sampleRate, 100, 1000);
+      if (primaryPitchRes.confidence > 0.3) {
+        const root = primaryPitchRes.pitchMidi;
+        const chordPitches = [root, root + 4, root + 7].map((p) => Math.min(108, Math.max(21, p)));
+
+        for (const pitch of chordPitches) {
+          rawNotes.push({
+            id: `note-${noteIdCounter++}`,
+            stem,
+            pitch,
+            noteName: midiPitchToNoteName(pitch),
+            startTime: timeSec,
+            endTime: Number((timeSec + 0.45).toFixed(3)),
+            duration: 0.45,
+            velocity: Math.min(127, Math.round(40 + rms * 200)),
+            confidence: Number(primaryPitchRes.confidence.toFixed(2)),
+            method: 'chord_harmony_detect',
+            role,
+            section: 'intro',
+            quantized: false,
+          });
+        }
+      }
+    }
+  };
+
+  transcribePolyphonicStem('piano', 'texture');
+  transcribePolyphonicStem('other', 'texture');
+
+  return rawNotes.sort((a, b) => a.startTime - b.startTime);
+}
 
 /**
  * Returns human-readable musical note name (e.g. 60 -> "C4", 61 -> "C#4")

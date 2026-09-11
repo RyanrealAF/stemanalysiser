@@ -311,6 +311,70 @@ export function detectKeyProfile(notesOrPitches: MidiNote[] | number[]): KeyProf
 /**
  * Computes root-mean-square energy of an audio buffer slice
  */
+/**
+ * Estimates true audio tempo (BPM) from an audio buffer using onset novelty curve autocorrelation
+ */
+export function estimateAudioBpm(
+  audioBuffer: AudioBuffer | Float32Array,
+  sampleRateParam = 44100,
+  minBpm = 60,
+  maxBpm = 180
+): number {
+  let data: Float32Array;
+  let sampleRate: number;
+
+  if (audioBuffer instanceof AudioBuffer) {
+    data = audioBuffer.getChannelData(0);
+    sampleRate = audioBuffer.sampleRate;
+  } else {
+    data = audioBuffer;
+    sampleRate = sampleRateParam;
+  }
+
+  if (!data || data.length === 0) return 120;
+
+  const hopSamples = Math.floor(sampleRate * 0.01); // 10ms hops
+  const numHops = Math.floor(data.length / hopSamples);
+  if (numHops < 100) return 120;
+
+  const novelty: number[] = new Array(numHops).fill(0);
+  let prevEnergy = 0;
+
+  for (let h = 0; h < numHops; h++) {
+    const s0 = h * hopSamples;
+    const s1 = Math.min(data.length, s0 + hopSamples);
+    let energy = 0;
+    for (let i = s0; i < s1; i++) {
+      energy += data[i] * data[i];
+    }
+    const rms = Math.sqrt(energy / Math.max(1, s1 - s0));
+    const flux = Math.max(0, rms - prevEnergy);
+    novelty[h] = flux;
+    prevEnergy = rms;
+  }
+
+  const minLag = Math.floor(6000 / maxBpm);
+  const maxLag = Math.floor(6000 / minBpm);
+
+  let bestLag = 50;
+  let maxCorr = -1;
+
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    let corr = 0;
+    for (let i = 0; i < novelty.length - lag; i++) {
+      corr += novelty[i] * novelty[i + lag];
+    }
+    if (corr > maxCorr) {
+      maxCorr = corr;
+      bestLag = lag;
+    }
+  }
+
+  const periodSec = bestLag * 0.01;
+  const estimatedBpm = 60 / periodSec;
+  return Number(Math.max(60, Math.min(200, estimatedBpm)).toFixed(1));
+}
+
 export function computeRms(channelData: Float32Array, startSample: number, endSample: number): number {
   let sum = 0;
   const len = Math.max(1, endSample - startSample);
