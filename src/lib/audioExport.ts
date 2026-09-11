@@ -136,22 +136,17 @@ Ready to drag & drop into any Digital Audio Workstation (Ableton Live, FL Studio
 }
 
 /**
- * Triggers an immediate browser download for a Blob file with robust fallback strategies
- * for sandboxed iframes, mobile WebViews, and strict browser download policies.
+ * Triggers an immediate browser download for a Blob file with safety guards against iframe sandbox errors.
  */
 export function triggerBlobDownload(blob: Blob, filename: string): boolean {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return false;
-
   try {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
-    a.rel = 'noopener';
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-
     setTimeout(() => {
       try {
         if (a.parentNode) {
@@ -161,33 +156,11 @@ export function triggerBlobDownload(blob: Blob, filename: string): boolean {
       } catch {
         // silent cleanup guard
       }
-    }, 3000);
-
+    }, 1500);
     return true;
   } catch (err) {
-    console.warn('Primary ObjectURL download failed, attempting Base64 Data URL fallback:', err);
-
-    try {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === 'string') {
-          const a = document.createElement('a');
-          a.href = reader.result;
-          a.download = filename;
-          a.style.display = 'none';
-          document.body.appendChild(a);
-          a.click();
-          setTimeout(() => {
-            if (a.parentNode) document.body.removeChild(a);
-          }, 1000);
-        }
-      };
-      reader.readAsDataURL(blob);
-      return true;
-    } catch (fallbackErr) {
-      console.error('All Blob download mechanisms failed:', fallbackErr);
-      return false;
-    }
+    console.warn('Browser sandbox or download policy prevented direct auto-download:', err);
+    return false;
   }
 }
 

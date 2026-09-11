@@ -106,7 +106,6 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
   const startRecording = async () => {
     setUploadError(null);
 
-    // If running inside Android native container, use hardware AudioRecord
     if (isAndroid) {
       try {
         await startAndroidRecording();
@@ -138,14 +137,12 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
       }
     }
 
-    // Web Audio Fallback
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
-      // Audio monitor for level visualization
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       const audioCtx = new AudioCtx();
       const source = audioCtx.createMediaStreamSource(stream);
@@ -242,8 +239,8 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
   };
 
   return (
-    <div className="bg-[#101217] rounded-lg border border-[#292D38] p-4 shadow-xl select-none">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-3 pb-2.5 border-b border-[#292D38]">
+    <div className="distressed-card rounded-lg p-5 shadow-2xl select-none">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4 pb-3 border-b border-[#292D38]">
         <div>
           <h2 className="text-xs font-mono font-bold uppercase tracking-[0.2em] text-white flex items-center gap-2">
             <Radio className="w-3.5 h-3.5 text-[#DC2626]" />
@@ -256,19 +253,19 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
 
         <div className="flex items-center gap-2 text-[10px] uppercase font-mono text-zinc-400 bg-[#07080A] px-2.5 py-1 rounded border border-[#292D38]">
           <Cpu className="w-3 h-3 text-[#06B6D4]" />
-          <span>Real Web Audio DSP + Gemini 3.7</span>
+          <span>Real Web Audio DSP + Gemini 2.5</span>
         </div>
       </div>
 
       {uploadError && (
-        <div className="mb-3 p-2.5 rounded bg-red-950/40 border border-red-800/60 text-red-300 text-xs flex items-center gap-2 font-mono">
+        <div className="mb-3 p-2.5 rounded bg-red-950/40 border border-[#DC2626]/60 text-red-300 text-xs flex items-center gap-2 font-mono">
           <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-400" />
           <span>{uploadError}</span>
         </div>
       )}
 
       {/* Primary Ingestion Workstation */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Main Audio File Drop Zone */}
         <div className="lg:col-span-8">
           <div
@@ -277,10 +274,10 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`min-h-[140px] border border-dashed rounded-lg p-5 flex flex-col items-center justify-center text-center cursor-pointer transition relative group ${
+            className={`min-h-[150px] border border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer transition relative group ${
               isDragging
-                ? 'border-cyan-400 bg-cyan-950/30 ring-2 ring-cyan-500/50'
-                : 'border-[#292D38] hover:border-cyan-500/70 bg-[#07080A] hover:bg-[#1A1D26]/40'
+                ? 'border-[#06B6D4] bg-[#06B6D4]/10'
+                : 'border-[#292D38] hover:border-[#06B6D4]/70 bg-[#07080A] hover:bg-[#1A1D26]/60'
             }`}
           >
             <input
@@ -290,11 +287,11 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
               accept="audio/*,.mp3,.wav,.flac,.m4a,.ogg,.aac,.aiff"
               className="hidden"
             />
-            <div className="w-10 h-10 rounded-lg bg-[#1A1D26] border border-[#292D38] flex items-center justify-center text-[#06B6D4] mb-2 group-hover:scale-105 transition shadow-sm">
-              <Upload className="w-5 h-5" />
+            <div className="w-12 h-12 rounded-lg bg-[#1A1D26] border border-[#292D38] flex items-center justify-center text-[#06B6D4] mb-2 group-hover:scale-105 transition shadow-sm">
+              <Upload className="w-6 h-6" />
             </div>
             <p className="text-sm font-bold text-white">
-              Drop audio file here, or <span className="text-cyan-400 underline underline-offset-2">browse filesystem</span>
+              Drop audio file here, or <span className="text-[#06B6D4] underline underline-offset-2">browse filesystem</span>
             </p>
             <p className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider mt-1">
               Supports Lossless WAV, FLAC, AIFF, MP3, M4A, OGG (Full Sample Rate)
@@ -304,8 +301,7 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
 
         {/* Live Audio Capture & DSP Specs */}
         <div className="lg:col-span-4 flex flex-col gap-2.5">
-          {/* Microphone Recording Workstation */}
-          <div className="bg-[#07080A] p-3 rounded-lg border border-[#292D38] flex flex-col justify-between flex-1">
+          <div className="bg-[#07080A] p-4 rounded-lg border border-[#292D38] flex flex-col justify-between flex-1">
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2">
                 <div className={`w-2.5 h-2.5 rounded-full ${isRecording ? 'bg-[#DC2626] animate-ping' : 'bg-zinc-600'}`} />
@@ -321,32 +317,32 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
               )}
             </div>
 
-            <p className="text-[10px] text-slate-400 leading-relaxed mb-2">
+            <p className="text-[10px] text-slate-400 leading-relaxed mb-3">
               {isAndroid
                 ? 'Native Android AudioRecord hardware capture with real-time FFT DSP.'
                 : 'Capture acoustic vocals, guitar, or live performance through your audio interface.'}
             </p>
 
             {isAndroid && androidCaps && (
-              <div className="mb-2 p-1.5 rounded bg-[#15171C] border border-[#2D3139] text-[9px] font-mono text-slate-400 flex flex-wrap gap-x-2.5 gap-y-1 items-center">
-                <span className="flex items-center gap-1 text-emerald-400">
+              <div className="mb-2 p-1.5 rounded bg-[#1A1D26] border border-[#292D38] text-[9px] font-mono text-slate-400 flex flex-wrap gap-x-2.5 gap-y-1 items-center">
+                <span className="flex items-center gap-1 text-[#10B981]">
                   <Smartphone className="w-2.5 h-2.5" />
                   <span>Android API</span>
                 </span>
                 <span>{androidCaps.nativeSampleRate} Hz</span>
                 <span>Buffer: {androidCaps.nativeOptimalBufferSize} frames</span>
                 {androidCaps.hasLowLatencyAudio && (
-                  <span className="text-indigo-400 font-bold">Low-Latency</span>
+                  <span className="text-[#8B5CF6] font-bold">Low-Latency</span>
                 )}
               </div>
             )}
 
             {isRecording && (
-              <div className="mb-2 flex flex-col gap-1">
+              <div className="mb-3 flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 h-2 bg-[#1A1D24] rounded-full overflow-hidden border border-[#2D3139]">
+                  <div className="flex-1 h-2 bg-[#1A1D26] rounded-full overflow-hidden border border-[#292D38]">
                     <div
-                      className="h-full bg-rose-500 transition-all duration-75"
+                      className="h-full bg-[#DC2626] transition-all duration-75"
                       style={{ width: `${Math.min(100, recordLevel * 100)}%` }}
                     />
                   </div>
@@ -355,7 +351,7 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
                   </span>
                 </div>
                 {spectralCentroid !== null && (
-                  <div className="text-[9px] font-mono text-indigo-400 flex items-center justify-between">
+                  <div className="text-[9px] font-mono text-[#06B6D4] flex items-center justify-between">
                     <span>Spectral Centroid:</span>
                     <span className="font-bold tabular-nums">{spectralCentroid} Hz</span>
                   </div>
@@ -366,10 +362,10 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
             <button
               onClick={isRecording ? stopRecording : startRecording}
               disabled={isProcessing}
-              className={`w-full py-2 px-3 rounded text-xs font-mono font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 ${
+              className={`w-full py-2.5 px-3 rounded text-xs font-mono font-bold uppercase tracking-wider transition flex items-center justify-center gap-2 cursor-pointer ${
                 isRecording
-                  ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/30'
-                  : 'bg-[#1A1D24] hover:bg-[#2D3139] text-slate-200 border border-[#2D3139]'
+                  ? 'bg-[#DC2626] hover:bg-red-700 text-white shadow-crimson-glow'
+                  : 'bg-[#1A1D26] hover:bg-[#292D38] text-slate-200 border border-[#292D38]'
               } disabled:opacity-40`}
             >
               {isRecording ? (
@@ -379,7 +375,7 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
                 </>
               ) : (
                 <>
-                  <Mic className="w-3.5 h-3.5 text-indigo-400" />
+                  <Mic className="w-3.5 h-3.5 text-[#06B6D4]" />
                   <span>Record Microphone Signal</span>
                 </>
               )}

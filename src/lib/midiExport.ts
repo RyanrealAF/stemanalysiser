@@ -4,7 +4,6 @@
  */
 
 import { MidiExportOptions, MidiNote, StemType } from '../types';
-import { triggerBlobDownload } from './audioExport';
 
 /**
  * Encodes variable-length quantity for MIDI standard
@@ -326,13 +325,26 @@ function encodeTrackEvents(events: MidiEventInternal[]): number[] {
 /**
  * Triggers a browser file download of the MIDI Uint8Array
  */
-export function downloadMidiBlob(data: Uint8Array, filename: string): boolean {
+export function downloadMidiBlob(data: Uint8Array, filename: string) {
   try {
-    const safeFilename = filename.endsWith('.mid') ? filename : `${filename}.mid`;
-    const blob = new Blob([data as unknown as BlobPart], { type: 'audio/midi' });
-    return triggerBlobDownload(blob, safeFilename);
+    const blob = new Blob([data.buffer as ArrayBuffer], { type: 'audio/midi' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename.endsWith('.mid') ? filename : `${filename}.mid`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      try {
+        if (a.parentNode) {
+          document.body.removeChild(a);
+        }
+        URL.revokeObjectURL(url);
+      } catch {
+        // silent cleanup guard
+      }
+    }, 1000);
   } catch (err) {
     console.warn('MIDI download notice:', err);
-    return false;
   }
 }
