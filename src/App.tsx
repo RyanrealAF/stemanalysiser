@@ -29,6 +29,8 @@ import {
   Check,
   ChevronDown,
   X,
+  Terminal,
+  FileCode,
 } from 'lucide-react';
 
 import {
@@ -93,6 +95,12 @@ export default function App() {
   const [cachedZipBlob, setCachedZipBlob] = useState<{ blob: Blob; filename: string } | null>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [autoDownloadTriggered, setAutoDownloadTriggered] = useState(false);
+
+  // Navigation Section State
+  const [navTab, setNavTab] = useState<
+    'overview' | 'nav-sec' | 'ctas-sec' | 'transport-sec' | 'mixer-sec' | 'visualizers-sec' | 'banners-sec' | 'modals-sec' | 'tokens-sec'
+  >('overview');
+
   const [activeTab, setActiveTab] = useState<'timeline' | 'pianoroll' | 'gemini' | 'diagnostics' | 'accuracy' | 'features'>('timeline');
   const [showAudioInput, setShowAudioInput] = useState(false);
   const [showMixer, setShowMixer] = useState(false);
@@ -226,7 +234,6 @@ export default function App() {
       const rawNotes = transcribeAudioStemsToMidiNotes(stemBuffers, songDuration, estimatedBpm);
 
       // DETERMINISTIC PASS: Cross-Stem Collision & Bleed Audit Protocol
-      // Between Stage 3 (Serialization) and Stage 4 (LLM Orchestration)
       setProcessingMessage('Executing Cross-Stem Collision & Bleed Audit Protocol (STFT F0 salience, centroid bandwidth & onset slope)...');
       await new Promise((r) => setTimeout(r, 150));
 
@@ -272,7 +279,6 @@ export default function App() {
       setProcessingMessage('Routing audited stems to Sub-Harmonic YIN (Bass), Salience Formants (Vocals), Chord Detector (Other), and Onset Tracker (Drums)...');
       await new Promise((r) => setTimeout(r, 150));
 
-      // Map dynamic section roles to the collision-audited notes
       for (const note of auditedRawNotes) {
         const sec = sections.find((s) => note.startTime >= s.startTime && note.startTime < s.endTime) || sections[0];
         note.section = sec.section;
@@ -318,10 +324,8 @@ export default function App() {
         keyProfile.scalePitches
       );
 
-      // Merge deterministic collision-pruned notes with DSP-purged notes for full audit tracking
       const purgedNotes = [...collisionPurgedNotes, ...dspPurgedNotes];
 
-      // Extract Creative Musical Intelligence: Harmonic Chords & Continuous CC Automation
       const harmonicChords = extractHarmonicChordsAndVoicings(
         cleanedNotes,
         estimatedBpm,
@@ -451,7 +455,6 @@ export default function App() {
       audioEngine.setSongData(songDuration, cleanedNotes, stemBuffers);
       setStemBuffersState(stemBuffers);
 
-      // Immediately package and initiate download of 6 Lossless WAV stems + Aligned Multi-Track MIDI
       setProcessingMessage('Packaging 6 lossless stems and multi-track MIDI ZIP for download...');
       try {
         const cleanSlug = (customMetadata.title || 'song').toLowerCase().replace(/[^a-z0-9]+/g, '_');
@@ -470,7 +473,6 @@ export default function App() {
         setAutoDownloadTriggered(true);
         setAutoDownloadNotice(`✓ Download started: "${filename}"`);
 
-        // If on Android native platform, save MIDI directly to device storage
         if (isAndroidPlatform()) {
           exportMidiToAndroid(cleanedNotes, estimatedBpm, customMetadata.title).catch(console.warn);
         }
@@ -479,7 +481,6 @@ export default function App() {
         setAutoDownloadNotice(`✓ 6 separated stems & MIDI transcription ready for download`);
       }
 
-      // Open the download center modal immediately so the user has immediate visual confirmation & direct download buttons
       setIsDownloadModalOpen(true);
       setIsProcessing(false);
     } catch (err) {
@@ -516,13 +517,6 @@ export default function App() {
     } finally {
       setIsZipping(false);
     }
-  };
-
-  const handleExportStemWav = (stem: StemType) => {
-    if (!stemBuffersState || !stemBuffersState[stem] || !pipelineResult) return;
-    const cleanSlug = (pipelineResult.metadata.title || 'song').toLowerCase().replace(/[^a-z0-9]+/g, '_');
-    const filename = `${cleanSlug}_${stem}.wav`;
-    downloadStemWav(stemBuffersState[stem], filename);
   };
 
   // Playback handlers
@@ -571,9 +565,12 @@ export default function App() {
     }, 100);
   };
 
-  /**
-   * Directly exports individual stem or multi-track MIDI files with one click
-   */
+  const toggleGlobalSynth = () => {
+    const nextVal = !playSynthMidi;
+    setPlaySynthMidi(nextVal);
+    audioEngine.setPlayMidiSynth(nextVal);
+  };
+
   const handleExportStemMidi = (stem: StemType | 'all') => {
     if (!pipelineResult) return;
     const filter = stem === 'all' ? undefined : stem;
@@ -585,7 +582,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen soundboard-desk-bg text-slate-300 flex flex-col font-sans selection:bg-[#dc2626] selection:text-white">
+    <div className="min-h-screen bg-[#07080A] text-slate-300 flex flex-col font-sans selection:bg-[#DC2626] selection:text-white">
       {/* Top Navigation Header */}
       <Header
         pipelineResult={pipelineResult}
@@ -595,14 +592,159 @@ export default function App() {
         playSynthMidi={playSynthMidi}
         onTogglePlay={handleTogglePlay}
         onStop={handleStop}
-        onTogglePlaySynthMidi={() => setPlaySynthMidi(!playSynthMidi)}
+        onTogglePlaySynthMidi={toggleGlobalSynth}
         onOpenExport={() => setIsExportOpen(true)}
         onSelectTrackModal={handleScrollToInput}
         onOpenAndroidPackage={() => setIsAndroidModalOpen(true)}
+        dspStatus={isProcessing ? 'processing' : pipelineResult ? 'ready' : 'idle'}
+        onNavigateTab={(tab) => setNavTab(tab as any)}
       />
 
+      {/* Hero Section: "Build While Bleeding" Specification Header Banner */}
+      <section className="bg-black border-b border-[#292D38] relative overflow-hidden select-none">
+        {/* Crimson Drip SVG Banner Graphic */}
+        <div className="absolute top-0 right-0 w-96 h-full opacity-15 pointer-events-none flex justify-end">
+          <svg className="h-full text-[#DC2626]" viewBox="0 0 200 100" preserveAspectRatio="none" fill="currentColor">
+            <path d="M0,0 L200,0 L200,100 L180,40 L160,80 L140,20 L120,90 L100,30 L80,70 L60,10 L40,60 L20,20 Z" />
+          </svg>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div>
+              <div className="flex items-center gap-2 text-[#DC2626] font-mono text-xs tracking-widest uppercase mb-1">
+                <Activity className="w-4 h-4 animate-bounce" />
+                <span>Lexicon Entry 001 // Core Philosophy</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono uppercase">
+                BUILD WHILE <span className="text-[#DC2626] border-b-4 border-[#DC2626] inline-block pb-1">BLEEDING</span>
+              </h1>
+              <p className="text-zinc-400 text-sm max-w-2xl mt-2 leading-relaxed">
+                <span className="font-mono text-xs text-red-400 font-semibold">v. phrase · condition · proper noun —</span> The act of producing code, DSP signal chains, & neural stem separations while actively sustaining damage. Not after recovery. Not after the bleeding stops. <span class="italic text-zinc-200">While it's still happening.</span>
+              </p>
+            </div>
+
+            {/* Global Interactive Audio Test Switcher */}
+            <div className="flex items-center gap-3 bg-[#101217] p-3 rounded-lg border border-[#292D38] shadow-distressed self-stretch md:self-auto justify-between md:justify-start">
+              <div className="text-left">
+                <div className="text-xs font-mono text-zinc-400">DSP Synth Engine</div>
+                <div id="global-synth-status" className={`text-xs font-mono font-bold ${playSynthMidi ? 'text-[#06B6D4]' : 'text-zinc-500'}`}>
+                  {playSynthMidi ? 'SYNTH ON' : 'SYNTH OFF'}
+                </div>
+              </div>
+              <button
+                id="synth-toggle-btn"
+                onClick={toggleGlobalSynth}
+                className="px-4 py-2 bg-[#1A1D26] hover:bg-[#292D38] text-white text-xs font-mono font-bold rounded border border-[#06B6D4]/40 flex items-center gap-2 transition-all cursor-pointer"
+              >
+                <Music2 className="w-4 h-4 text-[#06B6D4]" />
+                <span>{playSynthMidi ? 'Disable Synth' : 'Enable Demo Synth'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Secondary Navigation Bar (Spec Sub-Bar) */}
+      <nav className="bg-[#101217]/90 border-b border-[#292D38] sticky top-[57px] z-30 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-1 overflow-x-auto py-2 no-scrollbar font-mono text-xs">
+            <button
+              onClick={() => setNavTab('overview')}
+              className={`px-3 py-1.5 rounded font-semibold flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                navTab === 'overview'
+                  ? 'text-white bg-[#DC2626]'
+                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" /> All Elements
+            </button>
+            <button
+              onClick={() => setNavTab('nav-sec')}
+              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                navTab === 'nav-sec'
+                  ? 'text-white bg-[#DC2626]'
+                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
+              }`}
+            >
+              <Cpu className="w-3.5 h-3.5" /> 1. Top Nav
+            </button>
+            <button
+              onClick={() => setNavTab('ctas-sec')}
+              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                navTab === 'ctas-sec'
+                  ? 'text-white bg-[#DC2626]'
+                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" /> 2. Primary CTAs
+            </button>
+            <button
+              onClick={() => setNavTab('transport-sec')}
+              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                navTab === 'transport-sec'
+                  ? 'text-white bg-[#DC2626]'
+                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
+              }`}
+            >
+              <Play className="w-3.5 h-3.5" /> 3. Playback Transport
+            </button>
+            <button
+              onClick={() => setNavTab('mixer-sec')}
+              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                navTab === 'mixer-sec'
+                  ? 'text-white bg-[#DC2626]'
+                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" /> 4. Multi-Stem Mixer
+            </button>
+            <button
+              onClick={() => setNavTab('visualizers-sec')}
+              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                navTab === 'visualizers-sec'
+                  ? 'text-white bg-[#DC2626]'
+                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5" /> 5. Visualizers
+            </button>
+            <button
+              onClick={() => setNavTab('banners-sec')}
+              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                navTab === 'banners-sec'
+                  ? 'text-white bg-[#DC2626]'
+                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" /> 6. Analytics
+            </button>
+            <button
+              onClick={() => setNavTab('modals-sec')}
+              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                navTab === 'modals-sec'
+                  ? 'text-white bg-[#DC2626]'
+                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
+              }`}
+            >
+              <Terminal className="w-3.5 h-3.5" /> 7. Modals
+            </button>
+            <button
+              onClick={() => setNavTab('tokens-sec')}
+              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
+                navTab === 'tokens-sec'
+                  ? 'text-white bg-[#DC2626]'
+                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
+              }`}
+            >
+              <FileCode className="w-3.5 h-3.5" /> 8. Tokens
+            </button>
+          </div>
+        </div>
+      </nav>
+
       {/* Main Studio Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 space-y-4">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 space-y-6">
         {/* Stage 1 & 2: Audio Input & Recording Panel (Only shown before processing or when explicitly toggled) */}
         {(!pipelineResult || isProcessing || showAudioInput) && (
           <div className="space-y-4">
@@ -624,9 +766,9 @@ export default function App() {
 
         {/* Unified Studio Control & Action Bar */}
         {pipelineResult && !isProcessing && (
-          <div className="bg-[#101217] border border-[#232733] rounded-xl px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3 text-xs shadow-lg">
+          <div className="distressed-card rounded-xl px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3 text-xs shadow-lg">
             <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center text-[#10B981] shrink-0">
                 <CheckCircle className="w-4 h-4" />
               </div>
               <div className="min-w-0">
@@ -653,7 +795,7 @@ export default function App() {
                 type="button"
                 onClick={handleManualZipDownload}
                 disabled={isZipping || !stemBuffersState}
-                className="px-3 py-1.5 rounded-lg bg-[#DC2626] hover:bg-red-700 text-white font-mono font-bold text-xs flex items-center gap-1.5 transition shadow-sm disabled:opacity-50 active:scale-95 cursor-pointer"
+                className="px-3 py-1.5 rounded bg-[#DC2626] hover:bg-red-700 text-white font-mono font-bold text-xs flex items-center gap-1.5 transition shadow-crimson-glow disabled:opacity-50 active:scale-95 cursor-pointer"
                 title="Download 6 Lossless WAV Stems + Standard MIDI File in a single ZIP"
               >
                 <FileArchive className="w-3.5 h-3.5 text-white" />
@@ -663,10 +805,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => handleExportStemMidi('all')}
-                className="px-2.5 py-1.5 rounded-lg bg-[#181B24] hover:bg-[#232733] text-cyan-300 border border-cyan-800/40 text-xs font-mono font-medium flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-[#06B6D4] border border-[#06B6D4]/40 text-xs font-mono font-medium flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
                 title="Export All Stems as Multi-Track MIDI (.mid)"
               >
-                <Download className="w-3.5 h-3.5 text-cyan-400" />
+                <Download className="w-3.5 h-3.5 text-[#06B6D4]" />
                 <span>Bundle MIDI</span>
               </button>
 
@@ -675,7 +817,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setShowStemMenu(!showStemMenu)}
-                  className="px-2.5 py-1.5 rounded-lg bg-[#181B24] hover:bg-[#232733] text-zinc-300 border border-[#2d3342] text-xs font-mono flex items-center gap-1 transition cursor-pointer"
+                  className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-zinc-300 border border-[#292D38] text-xs font-mono flex items-center gap-1 transition cursor-pointer"
                   title="Export individual stem MIDI files"
                 >
                   <Music2 className="w-3.5 h-3.5 text-zinc-400" />
@@ -684,7 +826,7 @@ export default function App() {
                 </button>
 
                 {showStemMenu && (
-                  <div className="absolute right-0 mt-1.5 w-44 bg-[#14161F] border border-[#2D3342] rounded-lg shadow-2xl py-1 z-30 font-mono text-xs">
+                  <div className="absolute right-0 mt-1.5 w-44 bg-[#101217] border border-[#292D38] rounded-lg shadow-2xl py-1 z-30 font-mono text-xs">
                     {(['vocals', 'bass', 'drums', 'guitar', 'piano', 'other'] as StemType[]).map((stem) => (
                       <button
                         key={stem}
@@ -692,7 +834,7 @@ export default function App() {
                           handleExportStemMidi(stem);
                           setShowStemMenu(false);
                         }}
-                        className="w-full text-left px-3 py-1.5 hover:bg-[#202533] text-zinc-300 hover:text-white flex items-center justify-between capitalize transition cursor-pointer"
+                        className="w-full text-left px-3 py-1.5 hover:bg-[#1A1D26] text-zinc-300 hover:text-white flex items-center justify-between capitalize transition cursor-pointer"
                       >
                         <span>{stem} MIDI</span>
                         <Download className="w-3 h-3 text-zinc-500" />
@@ -705,10 +847,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowMixer(!showMixer)}
-                className={`px-2.5 py-1.5 rounded-lg border text-xs font-mono flex items-center gap-1.5 transition cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded border text-xs font-mono flex items-center gap-1.5 transition cursor-pointer ${
                   showMixer
-                    ? 'bg-red-950/40 text-red-300 border-red-800/50'
-                    : 'bg-[#181B24] text-zinc-300 hover:text-white border-[#2d3342]'
+                    ? 'bg-red-950/40 text-red-300 border-[#DC2626]/50'
+                    : 'bg-[#1A1D26] text-zinc-300 hover:text-white border-[#292D38]'
                 }`}
                 title="Toggle Track Mixer"
               >
@@ -720,10 +862,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setShowAudioInput(!showAudioInput)}
-                className="px-2.5 py-1.5 rounded-lg bg-[#181B24] hover:bg-[#232733] text-zinc-400 hover:text-white border border-[#2d3342] text-xs font-mono flex items-center gap-1 transition cursor-pointer"
+                className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-zinc-400 hover:text-white border border-[#292D38] text-xs font-mono flex items-center gap-1 transition cursor-pointer"
                 title="Upload or record new audio"
               >
-                <UploadCloud className="w-3.5 h-3.5 text-indigo-400" />
+                <UploadCloud className="w-3.5 h-3.5 text-[#06B6D4]" />
                 <span>{showAudioInput ? 'Hide Audio' : '+ Audio'}</span>
               </button>
             </div>
@@ -732,7 +874,7 @@ export default function App() {
 
         {/* Compact Auto-Download Notice */}
         {pipelineResult && autoDownloadNotice && (
-          <div className="bg-[#12141C] border border-red-500/40 rounded-lg px-3.5 py-2 flex items-center justify-between gap-3 text-xs text-zinc-200 shadow-md">
+          <div className="bg-[#101217] border border-[#DC2626]/50 rounded-lg px-3.5 py-2 flex items-center justify-between gap-3 text-xs text-zinc-200 shadow-md">
             <div className="flex items-center gap-2.5 min-w-0">
               <FileArchive className="w-4 h-4 text-red-400 shrink-0" />
               <p className="font-mono text-xs text-zinc-300 truncate">
@@ -744,7 +886,7 @@ export default function App() {
                 type="button"
                 onClick={handleManualZipDownload}
                 disabled={isZipping || !stemBuffersState}
-                className="px-2.5 py-1 rounded bg-red-600 hover:bg-red-500 text-white font-mono text-xs font-medium transition cursor-pointer"
+                className="px-2.5 py-1 rounded bg-[#DC2626] hover:bg-red-500 text-white font-mono text-xs font-medium transition cursor-pointer"
               >
                 {isZipping ? 'Bundling...' : 'Re-download (.ZIP)'}
               </button>
@@ -763,53 +905,53 @@ export default function App() {
         {/* Streamlined View Switcher Tabs & Studio Panels */}
         {pipelineResult && (
           <>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1E222D] pb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#292D38] pb-2">
               <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
                 <button
                   onClick={() => setActiveTab('timeline')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
                     activeTab === 'timeline'
-                      ? 'bg-[#181B24] text-cyan-300 border border-cyan-600/50 shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#12141C]'
+                      ? 'bg-[#1A1D26] text-[#06B6D4] border border-[#06B6D4]/50 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#101217]'
                   }`}
                 >
-                  <Layers className="w-3.5 h-3.5 text-cyan-400" />
+                  <Layers className="w-3.5 h-3.5 text-[#06B6D4]" />
                   <span>Timeline</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('pianoroll')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
                     activeTab === 'pianoroll'
-                      ? 'bg-[#181B24] text-pink-300 border border-pink-600/50 shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#12141C]'
+                      ? 'bg-[#1A1D26] text-[#EC4899] border border-[#EC4899]/50 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#101217]'
                   }`}
                 >
-                  <Grid className="w-3.5 h-3.5 text-pink-400" />
+                  <Grid className="w-3.5 h-3.5 text-[#EC4899]" />
                   <span>Piano Roll</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('gemini')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
                     activeTab === 'gemini'
-                      ? 'bg-[#181B24] text-indigo-300 border border-indigo-500/50 shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#12141C]'
+                      ? 'bg-[#1A1D26] text-[#8B5CF6] border border-[#8B5CF6]/50 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#101217]'
                   }`}
                 >
-                  <Brain className="w-3.5 h-3.5 text-indigo-400" />
+                  <Brain className="w-3.5 h-3.5 text-[#8B5CF6]" />
                   <span>Gemini AI</span>
                 </button>
 
                 <button
                   onClick={() => setActiveTab('diagnostics')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
                     activeTab === 'diagnostics' || activeTab === 'accuracy' || activeTab === 'features'
-                      ? 'bg-[#181B24] text-emerald-300 border border-emerald-500/50 shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#12141C]'
+                      ? 'bg-[#1A1D26] text-[#10B981] border border-[#10B981]/50 shadow-sm'
+                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#101217]'
                   }`}
                 >
-                  <Gauge className="w-3.5 h-3.5 text-emerald-400" />
+                  <Gauge className="w-3.5 h-3.5 text-[#10B981]" />
                   <span>Diagnostics</span>
                 </button>
               </div>
@@ -817,9 +959,9 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setIsExportOpen(true)}
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141620] hover:bg-[#1D212E] border border-[#232733] text-xs font-mono text-zinc-300 hover:text-white transition cursor-pointer"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#101217] hover:bg-[#1A1D26] border border-[#292D38] text-xs font-mono text-zinc-300 hover:text-white transition cursor-pointer"
                 >
-                  <Download className="w-3.5 h-3.5 text-cyan-400" />
+                  <Download className="w-3.5 h-3.5 text-[#06B6D4]" />
                   <span>Export Center</span>
                 </button>
               </div>
@@ -891,7 +1033,7 @@ export default function App() {
                 />
               </div>
             ) : (
-              <div className="bg-[#101217] border border-[#232733] rounded-xl px-4 py-2.5 flex items-center justify-between gap-3 text-xs font-mono">
+              <div className="bg-[#101217] border border-[#292D38] rounded-lg px-4 py-2.5 flex items-center justify-between gap-3 text-xs font-mono">
                 <div className="flex items-center gap-3 text-zinc-400">
                   <Sliders className="w-4 h-4 text-zinc-500" />
                   <span className="text-zinc-300 font-medium">Console Mixer:</span>
@@ -900,7 +1042,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setShowMixer(true)}
-                  className="px-3 py-1 rounded bg-[#181B24] hover:bg-[#232733] text-zinc-200 border border-[#2D3342] transition cursor-pointer text-xs font-medium"
+                  className="px-3 py-1 rounded bg-[#1A1D26] hover:bg-[#292D38] text-zinc-200 border border-[#292D38] transition cursor-pointer text-xs font-medium"
                 >
                   Show 6-Channel Mixer
                 </button>
@@ -910,15 +1052,15 @@ export default function App() {
         )}
 
         {/* Clean Studio Status Footer */}
-        <footer className="mt-4 bg-[#0A0B0E] border border-[#1E222D] rounded-lg px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono text-zinc-500">
+        <footer className="mt-4 bg-[#07080A] border border-[#292D38] rounded-lg px-4 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono text-zinc-500">
           <div className="flex items-center gap-4 flex-wrap">
             <span>ENGINE: <span className="text-zinc-300">WebAudio DSP (6-Stem Crossover)</span></span>
             <span>AI: <span className="text-zinc-300">Gemini 2.5 Flash</span></span>
             <span className="hidden md:inline">SAMPLE RATE: <span className="text-zinc-300">44.1 kHz</span></span>
           </div>
           <div className="flex items-center gap-4">
-            <span>DSP LATENCY: <span className="text-emerald-400">~140ms</span></span>
-            <span>ALIGNMENT: <span className="text-emerald-400">&lt; 1.4ms</span></span>
+            <span>DSP LATENCY: <span className="text-[#10B981]">~140ms</span></span>
+            <span>ALIGNMENT: <span className="text-[#10B981]">&lt; 1.4ms</span></span>
           </div>
         </footer>
       </main>
