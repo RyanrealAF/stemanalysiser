@@ -49,6 +49,7 @@ import {
   extractStemFeaturesFromBuffers,
   splitAudioIntoStemsUsingDsp,
   estimateFundamentalPitch,
+  estimateAudioBpm,
   extractPitchBendContour,
   extractDynamicVelocityFromAudio,
   extractGrooveTemplateFromDrums,
@@ -57,7 +58,12 @@ import {
   generateContinuousAutomationLanes,
   computeTranscriptionAccuracyProfile,
 } from './lib/audioDsp';
-import { determineRoutingMethod, processMidiAlignmentAndCleanup, midiPitchToNoteName } from './lib/transcriptionEngine';
+import {
+  determineRoutingMethod,
+  processMidiAlignmentAndCleanup,
+  midiPitchToNoteName,
+  transcribeAudioStemsToMidiNotes,
+} from './lib/transcriptionEngine';
 import { generateMidiFile, downloadMidiBlob } from './lib/midiExport';
 import { downloadStemmedAudioZip, downloadStemWav, triggerBlobDownload } from './lib/audioExport';
 import { executeCrossStemCollisionAudit, CollisionResolutionLog } from './lib/crossStemCollisionAudit';
@@ -176,7 +182,7 @@ export default function App() {
 
     try {
       const songDuration = Math.max(1, decodedBuffer.duration);
-      const estimatedBpm = 120;
+      let estimatedBpm = 120;
 
       const customMetadata: SongMetadata = {
         title: file.name.replace(/\.[^/.]+$/, ''),
@@ -205,156 +211,19 @@ export default function App() {
       // Create isolated stem buffers from the uploaded audio using frequency-band filter graph
       const stemBuffers = await splitAudioIntoStemsUsingDsp(decodedBuffer, songDuration);
 
+      // Estimate true audio tempo (BPM) from drum audio transients
+      estimatedBpm = estimateAudioBpm(stemBuffers.drums || decodedBuffer);
+      customMetadata.bpm = estimatedBpm;
+
       // Step 3: Feature Extraction & Concurrent Multi-Track Serialization
       setCurrentStep(3);
-      setProcessingMessage('Computing RMS energy envelopes, spectral centroids, and serializing concurrent multi-track notes...');
+      setProcessingMessage('Computing RMS energy envelopes, spectral centroids, and transcribing multi-track MIDI notes...');
       await new Promise((r) => setTimeout(r, 200));
 
       const { features: stemFeatures, correlations } = extractStemFeaturesFromBuffers(stemBuffers, 0.5);
 
-      // Concurrently serialize initial track notes across all 6 stems from real separated channel buffers
-      const rawNotes: MidiNote[] = [];
-      let noteIdCounter = 1;
-      const beatDuration = 60 / estimatedBpm;
-      const totalBeats = Math.floor(songDuration / beatDuration);
-      const sampleRate = decodedBuffer.sampleRate;
-      const vocalChannel = stemBuffers.vocals.getChannelData(0);
-      const bassChannel = stemBuffers.bass.getChannelData(0);
-      const otherChannel = stemBuffers.other.getChannelData(0);
-      const guitarChannel = stemBuffers.guitar?.getChannelData(0);
-      const pianoChannel = stemBuffers.piano?.getChannelData(0);
-
-      for (let b = 0; b < totalBeats; b++) {
-        const timeSec = b * beatDuration;
-        const s0 = Math.floor(timeSec * sampleRate);
-        const s1 = Math.min(vocalChannel.length, Math.floor((timeSec + beatDuration) * sampleRate));
-
-        // Drums Kick on 1 & 3, Snare on 2 & 4
-        rawNotes.push({
-          id: `note-${noteIdCounter++}`,
-          stem: 'drums',
-          pitch: b % 2 === 0 ? 36 : 38,
-          noteName: b % 2 === 0 ? 'C1' : 'D1',
-          startTime: Number(timeSec.toFixed(3)),
-          endTime: Number((timeSec + 0.2).toFixed(3)),
-          duration: 0.2,
-          velocity: b % 2 === 0 ? 105 : 115,
-          confidence: 0.95,
-          method: 'onset_drum_tracking',
-          role: 'percussion',
-          section: 'intro',
-          quantized: false,
-        });
-
-        // Bass pitch detection from real bass channel buffer
-        const bassPitchResult = estimateFundamentalPitch(bassChannel, s0, s1, sampleRate, 40, 300);
-        const bassPitch = bassPitchResult.confidence > 0.3 ? Math.max(28, Math.min(55, bassPitchResult.pitchMidi)) : (b % 2 === 0 ? 33 : 40);
-
-        rawNotes.push({
-          id: `note-${noteIdCounter++}`,
-          stem: 'bass',
-          pitch: bassPitch,
-          noteName: midiPitchToNoteName(bassPitch),
-          startTime: Number(timeSec.toFixed(3)),
-          endTime: Number((timeSec + beatDuration * 0.8).toFixed(3)),
-          duration: Number((beatDuration * 0.8).toFixed(3)),
-          velocity: 95,
-          confidence: Math.max(0.75, bassPitchResult.confidence),
-          method: 'monophonic_autocorrelation',
-          role: 'foundation',
-          section: 'intro',
-          quantized: false,
-        });
-
-        // Vocals Lead / Ornament Melody with pitch detection
-        if (b % 2 === 0) {
-          const vocalPitchResult = estimateFundamentalPitch(vocalChannel, s0, s1, sampleRate, 130, 880);
-          const vocalPitch = vocalPitchResult.confidence > 0.3 ? Math.max(55, Math.min(84, vocalPitchResult.pitchMidi)) : (69 + (b % 4) * 2);
-          rawNotes.push({
-            id: `note-${noteIdCounter++}`,
-            stem: 'vocals',
-            pitch: vocalPitch,
-            noteName: midiPitchToNoteName(vocalPitch),
-            startTime: Number((timeSec + 0.05).toFixed(3)),
-            endTime: Number((timeSec + beatDuration * 1.6).toFixed(3)),
-            duration: Number((beatDuration * 1.55).toFixed(3)),
-            velocity: 100,
-            confidence: Math.max(0.8, vocalPitchResult.confidence),
-            method: 'polyphonic_salience',
-            role: 'lead',
-            section: 'intro',
-            quantized: false,
-          });
-        }
-
-        // Guitar plucks / arpeggios
-        if (guitarChannel && b % 2 === 1) {
-          const gPitchResult = estimateFundamentalPitch(guitarChannel, s0, s1, sampleRate, 100, 700);
-          const gPitch = gPitchResult.confidence > 0.3 ? Math.max(48, Math.min(76, gPitchResult.pitchMidi)) : (52 + (b % 3) * 4);
-          rawNotes.push({
-            id: `note-${noteIdCounter++}`,
-            stem: 'guitar',
-            pitch: gPitch,
-            noteName: midiPitchToNoteName(gPitch),
-            startTime: Number((timeSec + 0.02).toFixed(3)),
-            endTime: Number((timeSec + beatDuration * 0.9).toFixed(3)),
-            duration: Number((beatDuration * 0.88).toFixed(3)),
-            velocity: 90,
-            confidence: 0.9,
-            method: 'polyphonic_salience',
-            role: 'lead',
-            section: 'intro',
-            quantized: false,
-          });
-        }
-
-        // Piano triad harmonies
-        if (pianoChannel && b % 4 === 0) {
-          const pPitchResult = estimateFundamentalPitch(pianoChannel, s0, s1, sampleRate, 120, 800);
-          const root = pPitchResult.confidence > 0.3 ? Math.max(48, Math.min(72, pPitchResult.pitchMidi)) : 60;
-          for (const cp of [root, root + 4, root + 7]) {
-            rawNotes.push({
-              id: `note-${noteIdCounter++}`,
-              stem: 'piano',
-              pitch: cp,
-              noteName: midiPitchToNoteName(cp),
-              startTime: Number(timeSec.toFixed(3)),
-              endTime: Number((timeSec + beatDuration * 3.5).toFixed(3)),
-              duration: Number((beatDuration * 3.5).toFixed(3)),
-              velocity: 88,
-              confidence: 0.92,
-              method: 'chord_harmony_detect',
-              role: 'texture',
-              section: 'intro',
-              quantized: false,
-            });
-          }
-        }
-
-        // Texture Chords in 'other' (potential bleed with bass/guitar)
-        if (b % 4 === 0) {
-          const otherPitchResult = estimateFundamentalPitch(otherChannel, s0, s1, sampleRate, 100, 1200);
-          const root = otherPitchResult.confidence > 0.3 ? Math.max(40, Math.min(72, otherPitchResult.pitchMidi)) : 57;
-          const chordPitches = [root, root + 3, root + 7];
-          for (const cp of chordPitches) {
-            rawNotes.push({
-              id: `note-${noteIdCounter++}`,
-              stem: 'other',
-              pitch: cp,
-              noteName: midiPitchToNoteName(cp),
-              startTime: Number(timeSec.toFixed(3)),
-              endTime: Number((timeSec + beatDuration * 3.8).toFixed(3)),
-              duration: Number((beatDuration * 3.8).toFixed(3)),
-              velocity: 85,
-              confidence: 0.96,
-              method: 'chord_harmony_detect',
-              role: 'texture',
-              section: 'intro',
-              quantized: false,
-            });
-          }
-        }
-      }
+      // Transcribe real multi-track MIDI notes directly from separated audio stem signals
+      const rawNotes = transcribeAudioStemsToMidiNotes(stemBuffers, songDuration, estimatedBpm);
 
       // DETERMINISTIC PASS: Cross-Stem Collision & Bleed Audit Protocol
       // Between Stage 3 (Serialization) and Stage 4 (LLM Orchestration)
