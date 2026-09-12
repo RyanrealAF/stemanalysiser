@@ -34,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   pipelineResult,
   isPlaying,
   currentTime,
+  duration,
   onTogglePlay,
   onStop,
   onOpenExport,
@@ -154,9 +155,11 @@ export const Header: React.FC<HeaderProps> = ({
               <Play className="w-3 h-3 fill-current ml-0.5" />
             )}
           </button>
-          <span className="font-mono text-[11px] font-bold text-[#DC2626] px-1 tabular-nums">
-            {formatTime(currentTime)}
-          </span>
+          <div className="flex items-center gap-1 font-mono text-[11px] font-bold px-1 tabular-nums">
+            <span className="text-[#DC2626]">{formatTime(currentTime)}</span>
+            <span className="text-zinc-600">/</span>
+            <span className="text-zinc-400">{duration > 0 ? formatTime(duration) : '--:--'}</span>
+          </div>
         </div>
 
         {/* Ingest / Audio Upload CTA */}

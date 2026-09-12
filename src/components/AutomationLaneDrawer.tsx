@@ -30,7 +30,7 @@ export const AutomationLaneDrawer: React.FC<AutomationLaneDrawerProps> = ({
   const lanes = pipelineResult.automationLanes[stemKey] || [];
   const activeLane = lanes.find((l) => l.type === activeLaneType) || lanes[0];
 
-  const totalDuration = duration || pipelineResult.metadata.duration || 30;
+  const totalDuration = Math.max(1, duration || pipelineResult.metadata.duration || 1);
   const playheadPct = (currentTime / totalDuration) * 100;
 
   if (!activeLane) return null;

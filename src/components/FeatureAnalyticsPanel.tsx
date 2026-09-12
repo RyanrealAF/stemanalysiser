@@ -31,7 +31,7 @@ export const FeatureAnalyticsPanel: React.FC<FeatureAnalyticsPanelProps> = ({
   if (!pipelineResult) return null;
 
   const { stemFeatures, metadata } = pipelineResult;
-  const totalDuration = duration || metadata.duration || 30;
+  const totalDuration = Math.max(1, duration || metadata.duration || 1);
 
   const stems: { type: StemType; label: string; stroke: string; fill: string }[] = [
     { type: 'vocals', label: 'Vocals', stroke: '#22d3ee', fill: 'rgba(34, 211, 238, 0.1)' },

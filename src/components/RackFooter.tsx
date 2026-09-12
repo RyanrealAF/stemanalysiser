@@ -9,9 +9,10 @@ interface RackFooterProps {
   currentTime: number;
   isPlaying: boolean;
   hasTrack?: boolean;
+  duration?: number;
 }
 
-export const RackFooter: React.FC<RackFooterProps> = ({ currentTime, isPlaying, hasTrack = false }) => {
+export const RackFooter: React.FC<RackFooterProps> = ({ currentTime, isPlaying, hasTrack = false, duration = 0 }) => {
   // Format real-time SMPTE timecode strictly from current audio time (no fake offsets)
   const formatSmpte = (timeSec: number) => {
     if (!hasTrack || timeSec <= 0) return '00:00:00:00';
@@ -71,6 +72,11 @@ export const RackFooter: React.FC<RackFooterProps> = ({ currentTime, isPlaying, 
         <span className={`drop-shadow-[0_0_6px_rgba(255,255,255,0.4)] tabular-nums font-extrabold text-sm tracking-widest ${hasTrack ? 'text-[#DC2626]' : 'text-zinc-600'}`}>
           {formatSmpte(currentTime)}
         </span>
+        {hasTrack && duration > 0 && (
+          <span className="text-zinc-500 font-bold text-[11px] tabular-nums">
+            / {formatSmpte(duration)}
+          </span>
+        )}
         <span className="hex-screw hidden sm:inline-block ml-2" />
       </div>
     </footer>

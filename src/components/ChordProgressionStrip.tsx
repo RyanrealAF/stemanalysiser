@@ -26,7 +26,7 @@ export const ChordProgressionStrip: React.FC<ChordProgressionStripProps> = ({
   }
 
   const chords = pipelineResult.chords;
-  const totalDuration = duration || pipelineResult.metadata.duration || 30;
+  const totalDuration = Math.max(1, duration || pipelineResult.metadata.duration || 1);
 
   const playChordVoicing = (chord: ChordSegment) => {
     // Play each note in the voicing staggered slightly for natural strum

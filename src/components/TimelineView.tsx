@@ -39,7 +39,7 @@ export const TimelineView: React.FC<TimelineViewProps> = ({
   if (!pipelineResult) return null;
 
   const { sections, metadata, stemFeatures } = pipelineResult;
-  const totalDuration = duration || metadata.duration || 30;
+  const totalDuration = Math.max(1, duration || metadata.duration || 1);
 
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!timelineRef.current) return;

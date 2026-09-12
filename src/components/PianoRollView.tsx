@@ -57,7 +57,7 @@ export const PianoRollView: React.FC<PianoRollViewProps> = ({
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const totalDuration = duration || pipelineResult?.metadata.duration || 30;
+  const totalDuration = Math.max(1, duration || pipelineResult?.metadata.duration || 1);
 
   // Filter notes to display with memoization
   const visibleNotes = useMemo(() => {
