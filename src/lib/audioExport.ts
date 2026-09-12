@@ -109,26 +109,6 @@ export async function createStemmedAudioZip(
     folder.file(extra.filename, extra.data);
   }
 
-  // Generate clear metadata documentation manifest
-  const manifest = `StemFlow AI Studio - Separated Stem Audio Package
-=====================================================
-Song: "${songTitle}"
-Engine Architecture: HTDemucs 6-Stem Multi-Band Hybrid Separation
-Audio Quality: 16-Bit Linear PCM Lossless WAV (Native Sample Rate)
-Date Generated: ${new Date().toUTCString()}
-
-STEM CHANNELS INCLUDED:
-1. ${titleSlug}_vocals.wav  - Lead melodic phrasing & vocal formants
-2. ${titleSlug}_bass.wav    - Low-frequency fundamental bassline (YIN F0)
-3. ${titleSlug}_drums.wav   - Kick, snare, hi-hat transient attacks
-4. ${titleSlug}_guitar.wav  - Polyphonic riffs, strums, and plucks
-5. ${titleSlug}_piano.wav   - Acoustic piano chord voicings & harmony
-6. ${titleSlug}_other.wav   - Synth pads, brass, and ambient atmosphere
-
-Ready to drag & drop into any Digital Audio Workstation (Ableton Live, FL Studio, Logic Pro, Pro Tools, Reaper).
-`;
-  folder.file('STEMFLOW_INFO.txt', manifest);
-
   return await zip.generateAsync({
     type: 'blob',
     compression: 'STORE',

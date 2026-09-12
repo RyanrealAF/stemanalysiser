@@ -37,6 +37,15 @@ class AudioEngine {
   private onEndedCallback: (() => void) | null = null;
   private animationFrameId: number | null = null;
   private playMidiSynth = true;
+  private masterAnalyser: AnalyserNode | null = null;
+  private stemAnalysers: Record<StemType, AnalyserNode | null> = {
+    vocals: null,
+    bass: null,
+    drums: null,
+    guitar: null,
+    piano: null,
+    other: null,
+  };
 
   constructor() {
     // Lazy init on first user gesture
@@ -49,12 +58,25 @@ class AudioEngine {
 
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.value = 0.85;
+
+      this.masterAnalyser = this.ctx.createAnalyser();
+      this.masterAnalyser.fftSize = 128;
+      this.masterAnalyser.smoothingTimeConstant = 0.8;
+
+      this.masterGain.connect(this.masterAnalyser);
       this.masterGain.connect(this.ctx.destination);
 
       const stems: StemType[] = ['vocals', 'bass', 'drums', 'guitar', 'piano', 'other'];
       for (const s of stems) {
         const gain = this.ctx.createGain();
         gain.gain.value = 0.8;
+
+        const analyser = this.ctx.createAnalyser();
+        analyser.fftSize = 128;
+        analyser.smoothingTimeConstant = 0.75;
+        gain.connect(analyser);
+        this.stemAnalysers[s] = analyser;
+
         if (typeof this.ctx.createStereoPanner === 'function') {
           const panner = this.ctx.createStereoPanner();
           gain.connect(panner);
@@ -69,6 +91,50 @@ class AudioEngine {
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
+  }
+
+  public getMasterFrequencyData(array: Uint8Array): void {
+    if (this.masterAnalyser && this.isPlaying) {
+      this.masterAnalyser.getByteFrequencyData(array);
+    } else {
+      array.fill(0);
+    }
+  }
+
+  public getMasterTimeDomainData(array: Uint8Array): void {
+    if (this.masterAnalyser && this.isPlaying) {
+      this.masterAnalyser.getByteTimeDomainData(array);
+    } else {
+      array.fill(128);
+    }
+  }
+
+  public getStemFrequencyData(stem: StemType, array: Uint8Array): void {
+    if (this.stemAnalysers[stem] && this.isPlaying) {
+      this.stemAnalysers[stem]!.getByteFrequencyData(array);
+    } else {
+      array.fill(0);
+    }
+  }
+
+  public getStemTimeDomainData(stem: StemType, array: Uint8Array): void {
+    if (this.stemAnalysers[stem] && this.isPlaying) {
+      this.stemAnalysers[stem]!.getByteTimeDomainData(array);
+    } else {
+      array.fill(128);
+    }
+  }
+
+  public getStemRms(stem: StemType): number {
+    if (!this.stemAnalysers[stem] || !this.isPlaying) return 0;
+    const data = new Uint8Array(64);
+    this.stemAnalysers[stem]!.getByteTimeDomainData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i++) {
+      const v = (data[i] - 128) / 128;
+      sum += v * v;
+    }
+    return Math.sqrt(sum / data.length);
   }
 
   public getContext(): AudioContext {

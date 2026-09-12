@@ -22,6 +22,7 @@ export type RackNavView =
 interface RackSidebarProps {
   activeView: RackNavView;
   onSelectView: (view: RackNavView) => void;
+  hasTrack?: boolean;
   rackThermalLoad?: number;
   bufferSize?: number;
 }
@@ -29,6 +30,7 @@ interface RackSidebarProps {
 export const RackSidebar: React.FC<RackSidebarProps> = ({
   activeView,
   onSelectView,
+  hasTrack = false,
   rackThermalLoad = 18.4,
   bufferSize = 64,
 }) => {
@@ -36,15 +38,20 @@ export const RackSidebar: React.FC<RackSidebarProps> = ({
     <aside className="fixed left-0 top-0 h-full w-64 gunmetal-aluminum border-r border-[#262a34] z-50 hidden lg:flex flex-col justify-between shadow-[8px_0_24px_rgba(0,0,0,0.6)] select-none">
       {/* Top Brand Banner */}
       <div className="flex flex-col">
-        <div className="h-16 px-5 flex items-center justify-between border-b border-[#282d38] bg-black/40 relative">
+        <div className="h-16 px-4 flex items-center justify-between border-b border-[#282d38] bg-black/40 relative">
           <div className="flex items-center gap-2.5">
-            <div className="w-3 h-3 rounded-full bg-[#DC2626] shadow-[0_0_12px_#DC2626] border border-[#ff8f8f]/40 animate-pulse" />
+            <img
+              src="/logo.png"
+              alt="StemFlow Logo"
+              className="w-8 h-8 rounded object-cover border border-[#3b4252] shadow-sm shrink-0"
+            />
             <div className="flex flex-col">
-              <span className="font-mono font-extrabold text-base text-white uppercase tracking-widest drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+              <span className="font-mono font-extrabold text-sm text-white uppercase tracking-widest drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
                 STEMFLOW
               </span>
-              <span className="font-mono text-[9px] text-[#DC2626] uppercase tracking-widest font-bold">
-                DSP HARDWARE // V4.2
+              <span className="font-mono text-[9px] text-[#DC2626] uppercase tracking-widest font-bold flex items-center gap-1">
+                <span className={`w-1.5 h-1.5 rounded-full bg-[#DC2626] ${hasTrack ? 'animate-pulse' : 'opacity-60'}`} />
+                <span>DSP HARDWARE // V4.2</span>
               </span>
             </div>
           </div>
@@ -132,29 +139,33 @@ export const RackSidebar: React.FC<RackSidebarProps> = ({
       <div className="p-4 border-t border-[#262a34] bg-black/60 flex flex-col gap-2 font-mono">
         <div className="flex items-center justify-between text-[10px] text-zinc-400">
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+            <span className={`w-1.5 h-1.5 rounded-full ${hasTrack ? 'bg-[#10B981]' : 'bg-zinc-600'}`} />
             RACK THERMAL LOAD
           </span>
-          <span className="text-[#10B981] font-bold">{rackThermalLoad.toFixed(1)}%</span>
+          <span className={`font-bold ${hasTrack ? 'text-[#10B981]' : 'text-zinc-600'}`}>
+            {hasTrack ? `${rackThermalLoad.toFixed(1)}%` : '0.0% (IDLE)'}
+          </span>
         </div>
         <div className="w-full recessed-track h-2 rounded-full overflow-hidden p-0.5">
           <div
-            className="bg-gradient-to-r from-[#10B981] to-[#34d399] h-full rounded-full shadow-[0_0_6px_#10B981]"
-            style={{ width: `${Math.min(100, rackThermalLoad)}%` }}
+            className="bg-gradient-to-r from-[#10B981] to-[#34d399] h-full rounded-full shadow-[0_0_6px_#10B981] transition-all duration-300"
+            style={{ width: hasTrack ? `${Math.min(100, rackThermalLoad)}%` : '0%' }}
           />
         </div>
 
         <div className="flex items-center justify-between text-[10px] text-zinc-400 pt-1">
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4CD7F6]" />
+            <span className={`w-1.5 h-1.5 rounded-full ${hasTrack ? 'bg-[#4CD7F6]' : 'bg-zinc-600'}`} />
             BUFFER CYCLE
           </span>
-          <span className="text-[#4CD7F6] font-bold">{bufferSize} SAMPLES</span>
+          <span className={`font-bold ${hasTrack ? 'text-[#4CD7F6]' : 'text-zinc-600'}`}>
+            {hasTrack ? `${bufferSize} SAMPLES` : 'STANDBY (0)'}
+          </span>
         </div>
         <div className="w-full recessed-track h-2 rounded-full overflow-hidden p-0.5">
           <div
-            className="bg-gradient-to-r from-[#4CD7F6] to-[#38bdf8] h-full rounded-full shadow-[0_0_6px_#4CD7F6]"
-            style={{ width: '35%' }}
+            className="bg-gradient-to-r from-[#4CD7F6] to-[#38bdf8] h-full rounded-full shadow-[0_0_6px_#4CD7F6] transition-all duration-300"
+            style={{ width: hasTrack ? '35%' : '0%' }}
           />
         </div>
 

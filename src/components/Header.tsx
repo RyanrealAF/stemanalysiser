@@ -54,13 +54,19 @@ export const Header: React.FC<HeaderProps> = ({
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
   };
 
-  const bpm = pipelineResult?.metadata.bpm ? pipelineResult.metadata.bpm.toFixed(0) : '124';
-  const key = pipelineResult?.metadata.key ? `${pipelineResult.metadata.key.toUpperCase()} MINOR` : 'C# MINOR';
+  const bpm = pipelineResult?.metadata.bpm ? `${pipelineResult.metadata.bpm.toFixed(0)} BPM` : '--';
+  const key = pipelineResult?.metadata.key ? `${pipelineResult.metadata.key.toUpperCase()} MINOR` : '--';
+  const busSdr = pipelineResult ? '14.2 dB' : '--';
 
   return (
     <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 brushed-metal-panel z-40 px-4 sm:px-6 flex items-center justify-between border-b border-[#282d38] select-none">
       {/* Left Title & Status Readout */}
       <div className="flex items-center gap-3">
+        <img
+          src="/logo.png"
+          alt="StemFlow"
+          className="w-7 h-7 rounded object-cover border border-[#3b4252] shadow-sm shrink-0 lg:hidden"
+        />
         <span className="hex-screw hidden sm:inline-block" title="Corner Torx" />
         <div className="flex flex-col">
           <h1 className="font-mono text-xs sm:text-sm font-extrabold text-white tracking-tight flex items-center gap-2">
@@ -70,14 +76,29 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </h1>
           <div className="flex items-center gap-2 font-mono text-[9px] sm:text-[10px] mt-0.5">
-            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_#10B981]" />
-            <span className="text-[#10B981] tracking-wide font-medium">
-              ENGINE: LIVE NEURAL DECOMPOSITION @ 96kHz, 32-BIT FLOAT
-            </span>
-            <span className="text-zinc-500 hidden md:inline">|</span>
-            <span className="text-[#DC2626] font-mono tracking-wider font-bold hidden md:inline">
-              SMPTE LOCK ACTIVE
-            </span>
+            {pipelineResult ? (
+              <>
+                <span className={`w-2 h-2 rounded-full ${isPlaying ? 'bg-[#10B981] animate-pulse shadow-[0_0_8px_#10B981]' : 'bg-[#06B6D4]'}`} />
+                <span className="text-[#10B981] tracking-wide font-medium">
+                  {isPlaying ? 'ENGINE: LIVE DECOMPOSITION PLAYBACK @ 96kHz' : 'ENGINE: TRACK PROCESSED // DSP READY'}
+                </span>
+                <span className="text-zinc-500 hidden md:inline">|</span>
+                <span className="text-[#DC2626] font-mono tracking-wider font-bold hidden md:inline">
+                  {isPlaying ? 'SMPTE RUNNING' : 'STANDBY'}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 rounded-full bg-zinc-600" />
+                <span className="text-zinc-500 tracking-wide font-medium">
+                  ENGINE: STANDBY // NO TRACK PROCESSED
+                </span>
+                <span className="text-zinc-700 hidden md:inline">|</span>
+                <span className="text-zinc-600 font-mono tracking-wider font-bold hidden md:inline">
+                  AWAITING AUDIO INPUT
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -88,22 +109,22 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="hidden xl:flex items-center gap-2 bg-[#0b0c10] px-3 py-1.5 rounded border border-[#2c303c] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8),0_1px_0_rgba(255,255,255,0.08)]">
           <div className="flex flex-col text-right">
             <span className="font-mono text-[9px] text-zinc-400">MASTER TEMPO</span>
-            <span className="font-mono text-xs font-bold text-[#4CD7F6] drop-shadow-[0_0_6px_rgba(76,215,246,0.5)]">
-              {bpm} BPM
+            <span className={`font-mono text-xs font-bold ${pipelineResult ? 'text-[#4CD7F6] drop-shadow-[0_0_6px_rgba(76,215,246,0.5)]' : 'text-zinc-600'}`}>
+              {bpm}
             </span>
           </div>
           <div className="h-6 w-px bg-[#262a34] mx-1" />
           <div className="flex flex-col text-right">
             <span className="font-mono text-[9px] text-zinc-400">TONAL ROOT</span>
-            <span className="font-mono text-xs font-bold text-[#EC4899] drop-shadow-[0_0_6px_rgba(236,72,153,0.5)]">
+            <span className={`font-mono text-xs font-bold ${pipelineResult ? 'text-[#EC4899] drop-shadow-[0_0_6px_rgba(236,72,153,0.5)]' : 'text-zinc-600'}`}>
               {key}
             </span>
           </div>
           <div className="h-6 w-px bg-[#262a34] mx-1" />
           <div className="flex flex-col text-right">
             <span className="font-mono text-[9px] text-zinc-400">BUS SDR</span>
-            <span className="font-mono text-xs font-bold text-[#DC2626] drop-shadow-[0_0_6px_rgba(220,38,38,0.5)]">
-              14.2 dB
+            <span className={`font-mono text-xs font-bold ${pipelineResult ? 'text-[#DC2626] drop-shadow-[0_0_6px_rgba(220,38,38,0.5)]' : 'text-zinc-600'}`}>
+              {busSdr}
             </span>
           </div>
         </div>

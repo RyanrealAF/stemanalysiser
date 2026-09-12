@@ -582,6 +582,7 @@ export default function App() {
       <RackSidebar
         activeView={rackNavView}
         onSelectView={(v) => setRackNavView(v)}
+        hasTrack={Boolean(pipelineResult)}
         rackThermalLoad={18.4}
         bufferSize={64}
       />
@@ -878,6 +879,27 @@ export default function App() {
             />
           )}
 
+          {!pipelineResult && rackNavView !== 'matrix-view' && (
+            <div className="rack-chassis rounded-lg p-10 flex flex-col items-center justify-center text-center gap-3 border border-[#2b303c] shadow-2xl font-mono">
+              <div className="w-12 h-12 rounded-lg bg-black/60 border border-[#2b303c] flex items-center justify-center text-zinc-600">
+                <Layers className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                BAY STANDBY // NO AUDIO TRACK INGESTED
+              </h3>
+              <p className="text-xs text-zinc-500 max-w-md">
+                This diagnostic module requires decoded audio stems and transcription data. Ingest an audio file or record live microphone input above to activate real-time telemetry.
+              </p>
+              <button
+                type="button"
+                onClick={() => setRackNavView('matrix-view')}
+                className="mt-2 px-3 py-1.5 rounded bg-[#1A1D26] hover:bg-[#282d38] text-[#4CD7F6] border border-[#2b303c] text-xs font-bold transition cursor-pointer"
+              >
+                ← Return to Soundboard Matrix View
+              </button>
+            </div>
+          )}
+
           {/* Collapsible Stem Mixer */}
           {pipelineResult && showMixer && (
             <div className="relative pt-2">
@@ -901,7 +923,7 @@ export default function App() {
         </main>
 
         {/* Bottom Rack Enclosure Bezel */}
-        <RackFooter currentTime={currentTime} isPlaying={isPlaying} />
+        <RackFooter currentTime={currentTime} isPlaying={isPlaying} hasTrack={Boolean(pipelineResult)} />
       </div>
 
       {/* Export Standard MIDI File & Stemmed Audio ZIP Modal */}
