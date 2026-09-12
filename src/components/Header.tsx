@@ -30,7 +30,6 @@ interface HeaderProps {
   onSelectTrackModal: () => void;
   onOpenAndroidPackage?: () => void;
   dspStatus?: 'idle' | 'processing' | 'ready';
-  onNavigateTab?: (tab: string) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -46,7 +45,6 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectTrackModal,
   onOpenAndroidPackage,
   dspStatus = 'ready',
-  onNavigateTab,
 }) => {
   const [isAndroid, setIsAndroid] = useState(false);
 
@@ -68,13 +66,10 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
         {/* Logo & App Title */}
         <div className="flex items-center gap-3">
-          <div
-            className="relative w-10 h-10 bg-black border-2 border-[#DC2626] rounded flex items-center justify-center shadow-crimson-glow group cursor-pointer"
-            onClick={() => onNavigateTab && onNavigateTab('overview')}
-          >
-            {/* Waveform / Dripping SVG Glyph */}
+          <div className="relative w-10 h-10 bg-black border-2 border-[#DC2626] rounded flex items-center justify-center shadow-crimson-glow">
+            {/* Waveform SVG Glyph */}
             <svg
-              className="w-6 h-6 text-[#DC2626] group-hover:scale-110 transition-transform"
+              className="w-6 h-6 text-[#DC2626]"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -90,12 +85,12 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="font-mono font-extrabold text-lg text-white tracking-wider">
                 STEMFLOW <span className="text-[#DC2626]">AI</span>
               </span>
-              <span className="px-1.5 py-0.5 text-[10px] font-mono uppercase bg-[#990000]/40 text-red-300 border border-[#DC2626]/50 rounded">
-                Lexicon 001
+              <span className="px-1.5 py-0.5 text-[10px] font-mono uppercase bg-emerald-950/60 text-emerald-300 border border-emerald-700/50 rounded">
+                DSP Engine
               </span>
             </div>
             <p className="text-[11px] font-mono text-zinc-400">
-              BUILD WHILE BLEEDING UI SPECIFICATION
+              Real-Time Stem Separation & Signal-Driven MIDI Transcription
             </p>
           </div>
         </div>

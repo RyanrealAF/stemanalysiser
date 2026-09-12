@@ -59,7 +59,7 @@
   text-transform: uppercase;
 }
 
-/* Rotary Knob Dial Simulation */
+/* Rotary Knob Dial Component */
 .knob-dial {
   transition: transform 0.1s ease-out;
 }

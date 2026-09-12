@@ -6,7 +6,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Layers,
-  Sparkles,
   Music2,
   Grid,
   Activity,
@@ -23,14 +22,11 @@ import {
   ShieldCheck,
   Gauge,
   UploadCloud,
-  Cpu,
   AudioWaveform,
   FileArchive,
   Check,
   ChevronDown,
   X,
-  Terminal,
-  FileCode,
 } from 'lucide-react';
 
 import {
@@ -95,11 +91,6 @@ export default function App() {
   const [cachedZipBlob, setCachedZipBlob] = useState<{ blob: Blob; filename: string } | null>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [autoDownloadTriggered, setAutoDownloadTriggered] = useState(false);
-
-  // Navigation Section State
-  const [navTab, setNavTab] = useState<
-    'overview' | 'nav-sec' | 'ctas-sec' | 'transport-sec' | 'mixer-sec' | 'visualizers-sec' | 'banners-sec' | 'modals-sec' | 'tokens-sec'
-  >('overview');
 
   const [activeTab, setActiveTab] = useState<'timeline' | 'pianoroll' | 'gemini' | 'diagnostics' | 'accuracy' | 'features'>('timeline');
   const [showAudioInput, setShowAudioInput] = useState(false);
@@ -597,151 +588,7 @@ export default function App() {
         onSelectTrackModal={handleScrollToInput}
         onOpenAndroidPackage={() => setIsAndroidModalOpen(true)}
         dspStatus={isProcessing ? 'processing' : pipelineResult ? 'ready' : 'idle'}
-        onNavigateTab={(tab) => setNavTab(tab as any)}
       />
-
-      {/* Hero Section: "Build While Bleeding" Specification Header Banner */}
-      <section className="bg-black border-b border-[#292D38] relative overflow-hidden select-none">
-        {/* Crimson Drip SVG Banner Graphic */}
-        <div className="absolute top-0 right-0 w-96 h-full opacity-15 pointer-events-none flex justify-end">
-          <svg className="h-full text-[#DC2626]" viewBox="0 0 200 100" preserveAspectRatio="none" fill="currentColor">
-            <path d="M0,0 L200,0 L200,100 L180,40 L160,80 L140,20 L120,90 L100,30 L80,70 L60,10 L40,60 L20,20 Z" />
-          </svg>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 relative z-10">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 text-[#DC2626] font-mono text-xs tracking-widest uppercase mb-1">
-                <Activity className="w-4 h-4 animate-bounce" />
-                <span>Lexicon Entry 001 // Core Philosophy</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white font-mono uppercase">
-                BUILD WHILE <span className="text-[#DC2626] border-b-4 border-[#DC2626] inline-block pb-1">BLEEDING</span>
-              </h1>
-              <p className="text-zinc-400 text-sm max-w-2xl mt-2 leading-relaxed">
-                <span className="font-mono text-xs text-red-400 font-semibold">v. phrase · condition · proper noun —</span> The act of producing code, DSP signal chains, & neural stem separations while actively sustaining damage. Not after recovery. Not after the bleeding stops. <span class="italic text-zinc-200">While it's still happening.</span>
-              </p>
-            </div>
-
-            {/* Global Interactive Audio Test Switcher */}
-            <div className="flex items-center gap-3 bg-[#101217] p-3 rounded-lg border border-[#292D38] shadow-distressed self-stretch md:self-auto justify-between md:justify-start">
-              <div className="text-left">
-                <div className="text-xs font-mono text-zinc-400">DSP Synth Engine</div>
-                <div id="global-synth-status" className={`text-xs font-mono font-bold ${playSynthMidi ? 'text-[#06B6D4]' : 'text-zinc-500'}`}>
-                  {playSynthMidi ? 'SYNTH ON' : 'SYNTH OFF'}
-                </div>
-              </div>
-              <button
-                id="synth-toggle-btn"
-                onClick={toggleGlobalSynth}
-                className="px-4 py-2 bg-[#1A1D26] hover:bg-[#292D38] text-white text-xs font-mono font-bold rounded border border-[#06B6D4]/40 flex items-center gap-2 transition-all cursor-pointer"
-              >
-                <Music2 className="w-4 h-4 text-[#06B6D4]" />
-                <span>{playSynthMidi ? 'Disable Synth' : 'Enable Demo Synth'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Secondary Navigation Bar (Spec Sub-Bar) */}
-      <nav className="bg-[#101217]/90 border-b border-[#292D38] sticky top-[57px] z-30 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-1 overflow-x-auto py-2 no-scrollbar font-mono text-xs">
-            <button
-              onClick={() => setNavTab('overview')}
-              className={`px-3 py-1.5 rounded font-semibold flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
-                navTab === 'overview'
-                  ? 'text-white bg-[#DC2626]'
-                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" /> All Elements
-            </button>
-            <button
-              onClick={() => setNavTab('nav-sec')}
-              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
-                navTab === 'nav-sec'
-                  ? 'text-white bg-[#DC2626]'
-                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
-              }`}
-            >
-              <Cpu className="w-3.5 h-3.5" /> 1. Top Nav
-            </button>
-            <button
-              onClick={() => setNavTab('ctas-sec')}
-              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
-                navTab === 'ctas-sec'
-                  ? 'text-white bg-[#DC2626]'
-                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" /> 2. Primary CTAs
-            </button>
-            <button
-              onClick={() => setNavTab('transport-sec')}
-              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
-                navTab === 'transport-sec'
-                  ? 'text-white bg-[#DC2626]'
-                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
-              }`}
-            >
-              <Play className="w-3.5 h-3.5" /> 3. Playback Transport
-            </button>
-            <button
-              onClick={() => setNavTab('mixer-sec')}
-              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
-                navTab === 'mixer-sec'
-                  ? 'text-white bg-[#DC2626]'
-                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
-              }`}
-            >
-              <Sliders className="w-3.5 h-3.5" /> 4. Multi-Stem Mixer
-            </button>
-            <button
-              onClick={() => setNavTab('visualizers-sec')}
-              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
-                navTab === 'visualizers-sec'
-                  ? 'text-white bg-[#DC2626]'
-                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
-              }`}
-            >
-              <Activity className="w-3.5 h-3.5" /> 5. Visualizers
-            </button>
-            <button
-              onClick={() => setNavTab('banners-sec')}
-              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
-                navTab === 'banners-sec'
-                  ? 'text-white bg-[#DC2626]'
-                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5" /> 6. Analytics
-            </button>
-            <button
-              onClick={() => setNavTab('modals-sec')}
-              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
-                navTab === 'modals-sec'
-                  ? 'text-white bg-[#DC2626]'
-                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
-              }`}
-            >
-              <Terminal className="w-3.5 h-3.5" /> 7. Modals
-            </button>
-            <button
-              onClick={() => setNavTab('tokens-sec')}
-              className={`px-3 py-1.5 rounded flex items-center gap-2 whitespace-nowrap transition cursor-pointer ${
-                navTab === 'tokens-sec'
-                  ? 'text-white bg-[#DC2626]'
-                  : 'text-zinc-400 hover:text-white hover:bg-[#1A1D26]'
-              }`}
-            >
-              <FileCode className="w-3.5 h-3.5" /> 8. Tokens
-            </button>
-          </div>
-        </div>
-      </nav>
 
       {/* Main Studio Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 space-y-6">
