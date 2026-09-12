@@ -104,7 +104,7 @@ export default function App() {
   // Playback State
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(30);
+  const [duration, setDuration] = useState(0);
   const [playSynthMidi, setPlaySynthMidi] = useState(true);
   const [auditionMode, setAuditionMode] = useState<AuditionMode>('hybrid_unison');
 
@@ -223,7 +223,8 @@ export default function App() {
       setProcessingMessage('Computing RMS energy envelopes, spectral centroids, and transcribing multi-track MIDI notes...');
       await new Promise((r) => setTimeout(r, 200));
 
-      const { features: stemFeatures, correlations } = extractStemFeaturesFromBuffers(stemBuffers, 0.5);
+      // Use full duration for feature extraction to ensure complete audio analysis
+      const { features: stemFeatures, correlations } = extractStemFeaturesFromBuffers(stemBuffers, songDuration);
 
       // Transcribe real multi-track MIDI notes directly from separated audio stem signals
       const rawNotes = transcribeAudioStemsToMidiNotes(stemBuffers, songDuration, estimatedBpm);
@@ -708,7 +709,7 @@ export default function App() {
                   type="button"
                   onClick={handleManualZipDownload}
                   disabled={isZipping || !stemBuffersState}
-                  className="px-3 py-1.5 rounded bg-[#DC2626] hover:bg-red-700 text-white font-mono font-bold text-xs flex items-center gap-1.5 transition shadow-crimson-glow disabled:opacity-50 active:scale-95 cursor-pointer"
+                  className="px-3 py-1.5 rounded bg-[#DC2626] hover:bg-red-700 text-white font-mono font-bold text-xs flex items-center gap-1.5 transition shadow-crimson-glow disabled:opacity-50 [...]
                   title="Download 6 Lossless WAV Stems + Standard MIDI File in a single ZIP"
                 >
                   <FileArchive className="w-3.5 h-3.5 text-white" />
@@ -718,7 +719,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => handleExportStemMidi('all')}
-                  className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-[#06B6D4] border border-[#06B6D4]/40 text-xs font-mono font-medium flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                  className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-[#06B6D4] border border-[#06B6D4]/40 text-xs font-mono font-medium flex items-center gap-1.5 transition act[...]
                   title="Export All Stems as Multi-Track MIDI (.mid)"
                 >
                   <Download className="w-3.5 h-3.5 text-[#06B6D4]" />
@@ -779,7 +780,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setShowAudioInput(!showAudioInput)}
-                  className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-zinc-400 hover:text-white border border-[#292D38] text-xs font-mono flex items-center gap-1 transition cursor-pointer"
+                  className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-zinc-400 hover:text-white border border-[#292D38] text-xs font-mono flex items-center gap-1 transition curs[...]
                   title="Upload or record new audio"
                 >
                   <UploadCloud className="w-3.5 h-3.5 text-[#06B6D4]" />
