@@ -8,11 +8,9 @@ import {
   Play,
   Pause,
   Square,
-  Music2,
-  Smartphone,
-  Github,
-  Download,
   UploadCloud,
+  Smartphone,
+  Download,
 } from 'lucide-react';
 import { SongPipelineResult } from '../types';
 import { isAndroidPlatform } from '../lib/androidBridge';
@@ -36,11 +34,8 @@ export const Header: React.FC<HeaderProps> = ({
   pipelineResult,
   isPlaying,
   currentTime,
-  duration,
-  playSynthMidi,
   onTogglePlay,
   onStop,
-  onTogglePlaySynthMidi,
   onOpenExport,
   onSelectTrackModal,
   onOpenAndroidPackage,
@@ -52,93 +47,80 @@ export const Header: React.FC<HeaderProps> = ({
     setIsAndroid(isAndroidPlatform());
   }, []);
 
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = Math.floor(secs % 60);
-    const ms = Math.floor((secs % 1) * 10);
-    return `${m}:${s.toString().padStart(2, '0')}.${ms}`;
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 100);
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
   };
 
-  const metadata = pipelineResult?.metadata;
+  const bpm = pipelineResult?.metadata.bpm ? pipelineResult.metadata.bpm.toFixed(0) : '124';
+  const key = pipelineResult?.metadata.key ? `${pipelineResult.metadata.key.toUpperCase()} MINOR` : 'C# MINOR';
 
   return (
-    <header className="bg-[#101217] border-b border-[#292D38] sticky top-0 z-40 backdrop-blur-md bg-opacity-95 select-none">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
-        {/* Logo & App Title */}
-        <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10 bg-black border-2 border-[#DC2626] rounded flex items-center justify-center shadow-crimson-glow">
-            {/* Waveform SVG Glyph */}
-            <svg
-              className="w-6 h-6 text-[#DC2626]"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <path d="M2 10h3l2-6 4 16 4-12 2 6h5" />
-              <circle cx="12" cy="18" r="1.5" fill="#DC2626" />
-              <path d="M12 18v3" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono font-extrabold text-lg text-white tracking-wider">
-                STEMFLOW <span className="text-[#DC2626]">AI</span>
-              </span>
-              <span className="px-1.5 py-0.5 text-[10px] font-mono uppercase bg-emerald-950/60 text-emerald-300 border border-emerald-700/50 rounded">
-                DSP Engine
-              </span>
-            </div>
-            <p className="text-[11px] font-mono text-zinc-400">
-              Real-Time Stem Separation & Signal-Driven MIDI Transcription
-            </p>
+    <header className="fixed top-0 left-0 lg:left-64 right-0 h-16 brushed-metal-panel z-40 px-4 sm:px-6 flex items-center justify-between border-b border-[#282d38] select-none">
+      {/* Left Title & Status Readout */}
+      <div className="flex items-center gap-3">
+        <span className="hex-screw hidden sm:inline-block" title="Corner Torx" />
+        <div className="flex flex-col">
+          <h1 className="font-mono text-xs sm:text-sm font-extrabold text-white tracking-tight flex items-center gap-2">
+            <span>STEMFLOW DSP // TELEMETRY SOUNDBOARD</span>
+            <span className="text-[10px] px-1.5 py-0.5 bg-[#14161b] text-zinc-400 border border-[#2e3340] rounded font-mono font-bold">
+              REV 4.2
+            </span>
+          </h1>
+          <div className="flex items-center gap-2 font-mono text-[9px] sm:text-[10px] mt-0.5">
+            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse shadow-[0_0_8px_#10B981]" />
+            <span className="text-[#10B981] tracking-wide font-medium">
+              ENGINE: LIVE NEURAL DECOMPOSITION @ 96kHz, 32-BIT FLOAT
+            </span>
+            <span className="text-zinc-500 hidden md:inline">|</span>
+            <span className="text-[#DC2626] font-mono tracking-wider font-bold hidden md:inline">
+              SMPTE LOCK ACTIVE
+            </span>
           </div>
         </div>
+      </div>
 
-        {/* DSP Status Chip */}
-        <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 bg-[#07080A] border border-[#292D38] rounded-md font-mono text-xs">
-          <span className="text-zinc-500">DSP STATUS:</span>
-          <div className="flex items-center gap-2">
-            <span
-              className={`w-2.5 h-2.5 rounded-full ${
-                dspStatus === 'processing'
-                  ? 'bg-[#F59E0B] animate-ping'
-                  : dspStatus === 'ready'
-                  ? 'bg-[#10B981] animate-pulse'
-                  : 'bg-zinc-500'
-              }`}
-            />
-            <span
-              className={`font-semibold ${
-                dspStatus === 'processing'
-                  ? 'text-[#F59E0B]'
-                  : dspStatus === 'ready'
-                  ? 'text-[#10B981]'
-                  : 'text-zinc-400'
-              }`}
-            >
-              {dspStatus === 'processing'
-                ? 'PROCESSING'
-                : dspStatus === 'ready'
-                ? 'DSP READY'
-                : 'IDLE'}
+      {/* Right Controls & Telemetry HUD */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Telemetry pill box */}
+        <div className="hidden xl:flex items-center gap-2 bg-[#0b0c10] px-3 py-1.5 rounded border border-[#2c303c] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8),0_1px_0_rgba(255,255,255,0.08)]">
+          <div className="flex flex-col text-right">
+            <span className="font-mono text-[9px] text-zinc-400">MASTER TEMPO</span>
+            <span className="font-mono text-xs font-bold text-[#4CD7F6] drop-shadow-[0_0_6px_rgba(76,215,246,0.5)]">
+              {bpm} BPM
+            </span>
+          </div>
+          <div className="h-6 w-px bg-[#262a34] mx-1" />
+          <div className="flex flex-col text-right">
+            <span className="font-mono text-[9px] text-zinc-400">TONAL ROOT</span>
+            <span className="font-mono text-xs font-bold text-[#EC4899] drop-shadow-[0_0_6px_rgba(236,72,153,0.5)]">
+              {key}
+            </span>
+          </div>
+          <div className="h-6 w-px bg-[#262a34] mx-1" />
+          <div className="flex flex-col text-right">
+            <span className="font-mono text-[9px] text-zinc-400">BUS SDR</span>
+            <span className="font-mono text-xs font-bold text-[#DC2626] drop-shadow-[0_0_6px_rgba(220,38,38,0.5)]">
+              14.2 dB
             </span>
           </div>
         </div>
 
-        {/* Transport Readout / Controls in Header */}
-        <div className="flex items-center gap-2 bg-[#07080A] px-3 py-1 rounded border border-[#292D38]">
+        {/* Transport Mini Player */}
+        <div className="flex items-center gap-1.5 bg-[#0b0c10] px-2 py-1 rounded border border-[#2c303c]">
           <button
             onClick={onStop}
             className="p-1 rounded hover:bg-[#1A1D26] text-zinc-400 hover:text-white transition cursor-pointer"
             title="Stop & Reset"
           >
-            <Square className="w-3.5 h-3.5 fill-current" />
+            <Square className="w-3 h-3 fill-current" />
           </button>
           <button
             onClick={onTogglePlay}
             disabled={!pipelineResult}
-            className={`w-7 h-7 rounded flex items-center justify-center transition font-bold cursor-pointer ${
+            className={`w-6 h-6 rounded flex items-center justify-center transition font-bold cursor-pointer ${
               isPlaying
                 ? 'bg-[#10B981] text-black hover:bg-emerald-400 shadow-sm'
                 : 'bg-[#DC2626] text-white hover:bg-red-700'
@@ -146,44 +128,50 @@ export const Header: React.FC<HeaderProps> = ({
             title={isPlaying ? 'Pause' : 'Play Master'}
           >
             {isPlaying ? (
-              <Pause className="w-3.5 h-3.5 fill-current" />
+              <Pause className="w-3 h-3 fill-current" />
             ) : (
-              <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+              <Play className="w-3 h-3 fill-current ml-0.5" />
             )}
           </button>
-          <div className="px-2 py-0.5 bg-black/60 rounded text-center min-w-[68px]">
-            <span className="font-mono text-xs font-bold text-[#DC2626] tabular-nums">
-              {formatTime(currentTime)}
-            </span>
-          </div>
+          <span className="font-mono text-[11px] font-bold text-[#DC2626] px-1 tabular-nums">
+            {formatTime(currentTime)}
+          </span>
         </div>
 
-        {/* Quick Action CTAs from Top Nav Spec */}
-        <div className="flex items-center gap-2 flex-wrap">
+        {/* Ingest / Audio Upload CTA */}
+        <button
+          onClick={onSelectTrackModal}
+          className="px-2.5 py-1.5 bg-[#14161b] hover:bg-[#20242e] text-zinc-300 font-mono text-[11px] font-medium rounded border border-[#2e3340] flex items-center gap-1.5 transition cursor-pointer"
+          title="Upload or record audio"
+        >
+          <UploadCloud className="w-3.5 h-3.5 text-[#06B6D4]" />
+          <span className="hidden sm:inline">Ingest Audio</span>
+        </button>
+
+        {/* Android Package CTA */}
+        {onOpenAndroidPackage && (
           <button
             onClick={onOpenAndroidPackage}
-            className="px-3 py-1.5 bg-[#DC2626] hover:bg-red-700 text-white font-mono text-xs font-bold rounded flex items-center gap-2 transition-all shadow-crimson-glow cursor-pointer"
+            className="hidden md:flex px-2.5 py-1.5 bg-[#14161b] hover:bg-[#20242e] text-zinc-300 font-mono text-[11px] font-medium rounded border border-[#2e3340] items-center gap-1.5 transition cursor-pointer"
+            title="Android APK & Hardware DSP Package"
           >
-            <Smartphone className="w-4 h-4" />
-            <span>Android APK (4.2M)</span>
+            <Smartphone className="w-3.5 h-3.5 text-[#10B981]" />
+            <span>Android API</span>
           </button>
+        )}
 
-          <button
-            onClick={onSelectTrackModal}
-            className="px-3 py-1.5 bg-[#1A1D26] hover:bg-[#292D38] text-zinc-200 font-mono text-xs font-medium rounded border border-[#292D38] flex items-center gap-2 transition-colors cursor-pointer"
-          >
-            <UploadCloud className="w-4 h-4 text-[#06B6D4]" />
-            <span className="hidden md:inline">Ingest Audio</span>
-          </button>
-
-          <button
-            onClick={onOpenExport}
-            disabled={!pipelineResult}
-            className="px-3 py-1.5 bg-gradient-to-r from-[#DC2626] to-red-900 hover:from-red-600 hover:to-red-950 text-white font-mono text-xs font-bold rounded border border-red-500/50 flex items-center gap-2 transition-all disabled:opacity-40 cursor-pointer"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export Stems</span>
-          </button>
+        {/* Operator Profile / Chassis Lock */}
+        <div className="flex items-center gap-2 pl-2 border-l border-[#2e323e]">
+          <div className="flex flex-col text-right hidden sm:flex">
+            <span className="font-mono text-[10px] font-bold text-white">OP_CHASSIS_01</span>
+            <span className="font-mono text-[9px] text-[#10B981] font-bold">AUTHORIZED</span>
+          </div>
+          <div className="w-7 h-7 rounded-full bg-gradient-to-b from-[#3a3f4e] to-[#121418] p-0.5 shadow-md flex items-center justify-center border border-[#262a34]">
+            <div className="w-full h-full rounded-full bg-[#181a20] flex items-center justify-center text-[10px] font-mono font-bold text-zinc-300">
+              01
+            </div>
+          </div>
+          <span className="hex-screw" title="Chassis Lock" />
         </div>
       </div>
     </header>

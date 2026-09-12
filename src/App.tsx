@@ -68,6 +68,9 @@ import { executeCrossStemCollisionAudit, CollisionResolutionLog } from './lib/cr
 import { isAndroidPlatform, exportMidiToAndroid } from './lib/androidBridge';
 
 import { Header } from './components/Header';
+import { RackSidebar, RackNavView } from './components/RackSidebar';
+import { RackFooter } from './components/RackFooter';
+import { TelemetrySoundboard } from './components/TelemetrySoundboard';
 import { AudioInputPanel } from './components/AudioInputPanel';
 import { PipelineProgress } from './components/PipelineProgress';
 import { TrackMixer } from './components/TrackMixer';
@@ -92,6 +95,7 @@ export default function App() {
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [autoDownloadTriggered, setAutoDownloadTriggered] = useState(false);
 
+  const [rackNavView, setRackNavView] = useState<RackNavView>('matrix-view');
   const [activeTab, setActiveTab] = useState<'timeline' | 'pianoroll' | 'gemini' | 'diagnostics' | 'accuracy' | 'features'>('timeline');
   const [showAudioInput, setShowAudioInput] = useState(false);
   const [showMixer, setShowMixer] = useState(false);
@@ -573,344 +577,332 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#07080A] text-slate-300 flex flex-col font-sans selection:bg-[#DC2626] selection:text-white">
-      {/* Top Navigation Header */}
-      <Header
-        pipelineResult={pipelineResult}
-        isPlaying={isPlaying}
-        currentTime={currentTime}
-        duration={duration}
-        playSynthMidi={playSynthMidi}
-        onTogglePlay={handleTogglePlay}
-        onStop={handleStop}
-        onTogglePlaySynthMidi={toggleGlobalSynth}
-        onOpenExport={() => setIsExportOpen(true)}
-        onSelectTrackModal={handleScrollToInput}
-        onOpenAndroidPackage={() => setIsAndroidModalOpen(true)}
-        dspStatus={isProcessing ? 'processing' : pipelineResult ? 'ready' : 'idle'}
+    <div className="min-h-screen bg-[#0b0c10] text-slate-300 flex font-sans selection:bg-[#DC2626] selection:text-white">
+      {/* Outer Rack Chassis Left Sidebar (Anodized Bead-blasted Aluminum) */}
+      <RackSidebar
+        activeView={rackNavView}
+        onSelectView={(v) => setRackNavView(v)}
+        rackThermalLoad={18.4}
+        bufferSize={64}
       />
 
-      {/* Main Studio Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 space-y-6">
-        {/* Stage 1 & 2: Audio Input & Recording Panel (Only shown before processing or when explicitly toggled) */}
-        {(!pipelineResult || isProcessing || showAudioInput) && (
-          <div className="space-y-4">
-            <AudioInputPanel
-              onCustomAudioUploaded={handleCustomAudioUploaded}
-              isProcessing={isProcessing}
-              hasLoadedAudio={!!pipelineResult}
-            />
+      {/* Main Rack Chassis Wrapper */}
+      <div className="pl-0 lg:pl-64 w-full min-h-screen flex flex-col bg-[#0d0e13]">
+        {/* Top Rack Header (Brushed Metal with Engraved Precision Dividers & Torx Screws) */}
+        <Header
+          pipelineResult={pipelineResult}
+          isPlaying={isPlaying}
+          currentTime={currentTime}
+          duration={duration}
+          playSynthMidi={playSynthMidi}
+          onTogglePlay={handleTogglePlay}
+          onStop={handleStop}
+          onTogglePlaySynthMidi={toggleGlobalSynth}
+          onOpenExport={() => setIsExportOpen(true)}
+          onSelectTrackModal={handleScrollToInput}
+          onOpenAndroidPackage={() => setIsAndroidModalOpen(true)}
+          dspStatus={isProcessing ? 'processing' : pipelineResult ? 'ready' : 'idle'}
+        />
 
-            {(isProcessing || currentStep > 0) && (
-              <PipelineProgress
-                currentStep={currentStep}
-                isProcessing={isProcessing}
-                activeMessage={processingMessage}
-              />
-            )}
+        {/* Main Workstation Stage */}
+        <main className="relative pt-20 pb-16 w-full px-3 sm:px-6 min-h-screen bg-[#0d0e13] space-y-5">
+          {/* Mobile Bay Selector for smaller screens */}
+          <div className="flex lg:hidden items-center gap-1 overflow-x-auto py-1 font-mono text-xs border-b border-[#262a34]">
+            <button
+              onClick={() => setRackNavView('matrix-view')}
+              className={`px-3 py-1 rounded whitespace-nowrap font-bold ${
+                rackNavView === 'matrix-view'
+                  ? 'bg-[#DC2626] text-white'
+                  : 'bg-[#14161b] text-zinc-400 hover:text-white'
+              }`}
+            >
+              Matrix View
+            </button>
+            <button
+              onClick={() => setRackNavView('spectral-tensor')}
+              className={`px-3 py-1 rounded whitespace-nowrap font-bold ${
+                rackNavView === 'spectral-tensor'
+                  ? 'bg-[#DC2626] text-white'
+                  : 'bg-[#14161b] text-zinc-400 hover:text-white'
+              }`}
+            >
+              Spectral Tensor
+            </button>
+            <button
+              onClick={() => setRackNavView('midi-extraction-bus')}
+              className={`px-3 py-1 rounded whitespace-nowrap font-bold ${
+                rackNavView === 'midi-extraction-bus'
+                  ? 'bg-[#DC2626] text-white'
+                  : 'bg-[#14161b] text-zinc-400 hover:text-white'
+              }`}
+            >
+              MIDI Bus
+            </button>
+            <button
+              onClick={() => setRackNavView('phase-and-latency')}
+              className={`px-3 py-1 rounded whitespace-nowrap font-bold ${
+                rackNavView === 'phase-and-latency'
+                  ? 'bg-[#DC2626] text-white'
+                  : 'bg-[#14161b] text-zinc-400 hover:text-white'
+              }`}
+            >
+              Phase & Latency
+            </button>
+            <button
+              onClick={() => setRackNavView('diagnostic-telemetry')}
+              className={`px-3 py-1 rounded whitespace-nowrap font-bold ${
+                rackNavView === 'diagnostic-telemetry'
+                  ? 'bg-[#DC2626] text-white'
+                  : 'bg-[#14161b] text-zinc-400 hover:text-white'
+              }`}
+            >
+              Diagnostics
+            </button>
           </div>
-        )}
 
-        {/* Unified Studio Control & Action Bar */}
-        {pipelineResult && !isProcessing && (
-          <div className="distressed-card rounded-xl px-4 py-3 flex flex-col md:flex-row items-center justify-between gap-3 text-xs shadow-lg">
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="w-8 h-8 rounded-lg bg-[#10B981]/10 border border-[#10B981]/30 flex items-center justify-center text-[#10B981] shrink-0">
-                <CheckCircle className="w-4 h-4" />
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-white text-sm font-mono truncate">
-                    {pipelineResult.metadata?.title || 'Master Track'}
-                  </span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/70 border border-emerald-700/60 text-emerald-300 font-bold">
-                    {pipelineResult.accuracyProfile?.pitchAccuracyScore ?? 99.2}% ACCURACY
-                  </span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-700/60 text-cyan-300 font-bold hidden sm:inline">
-                    6 STEMS
-                  </span>
-                </div>
-                <p className="text-[11px] text-zinc-400 font-mono truncate mt-0.5">
-                  {pipelineResult.cleanedMidiNotes.length} clean MIDI notes · ±{pipelineResult.accuracyProfile?.transientTimingPrecisionMs ?? 1.4}ms precision · {pipelineResult.metadata?.bpm?.toFixed(1) ?? '120.0'} BPM ({pipelineResult.metadata?.key ?? 'C'})
-                </p>
-              </div>
+          {/* Stage 1 & 2: Audio Input & Recording Panel (Only shown before processing or when explicitly toggled) */}
+          {(!pipelineResult || isProcessing || showAudioInput) && (
+            <div className="space-y-4">
+              <AudioInputPanel
+                onCustomAudioUploaded={handleCustomAudioUploaded}
+                isProcessing={isProcessing}
+                hasLoadedAudio={!!pipelineResult}
+              />
+
+              {(isProcessing || currentStep > 0) && (
+                <PipelineProgress
+                  currentStep={currentStep}
+                  isProcessing={isProcessing}
+                  activeMessage={processingMessage}
+                />
+              )}
             </div>
+          )}
 
-            {/* Quick Actions & Downloads */}
-            <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap relative">
-              <button
-                type="button"
-                onClick={handleManualZipDownload}
-                disabled={isZipping || !stemBuffersState}
-                className="px-3 py-1.5 rounded bg-[#DC2626] hover:bg-red-700 text-white font-mono font-bold text-xs flex items-center gap-1.5 transition shadow-crimson-glow disabled:opacity-50 active:scale-95 cursor-pointer"
-                title="Download 6 Lossless WAV Stems + Standard MIDI File in a single ZIP"
-              >
-                <FileArchive className="w-3.5 h-3.5 text-white" />
-                <span>{isZipping ? 'Bundling...' : 'Download Stems (.ZIP)'}</span>
-              </button>
+          {/* Quick Actions Action Bar when audio is loaded */}
+          {pipelineResult && !isProcessing && (
+            <div className="bg-[#101217] border border-[#292D38] rounded-lg px-4 py-2.5 flex flex-col md:flex-row items-center justify-between gap-3 text-xs shadow-md">
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="w-7 h-7 rounded bg-[#10B981]/15 border border-[#10B981]/40 flex items-center justify-center text-[#10B981] shrink-0">
+                  <CheckCircle className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-white text-sm font-mono truncate">
+                      {pipelineResult.metadata?.title || 'Master Track'}
+                    </span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/70 border border-emerald-700/60 text-emerald-300 font-bold">
+                      {pipelineResult.accuracyProfile?.pitchAccuracyScore ?? 99.2}% ACCURACY
+                    </span>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950/70 border border-cyan-700/60 text-cyan-300 font-bold hidden sm:inline">
+                      6 STEMS
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-              <button
-                type="button"
-                onClick={() => handleExportStemMidi('all')}
-                className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-[#06B6D4] border border-[#06B6D4]/40 text-xs font-mono font-medium flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
-                title="Export All Stems as Multi-Track MIDI (.mid)"
-              >
-                <Download className="w-3.5 h-3.5 text-[#06B6D4]" />
-                <span>Bundle MIDI</span>
-              </button>
-
-              {/* Clean Single-Stem MIDI Dropdown */}
-              <div className="relative">
+              {/* Quick Actions & Downloads */}
+              <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap relative">
                 <button
                   type="button"
-                  onClick={() => setShowStemMenu(!showStemMenu)}
-                  className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-zinc-300 border border-[#292D38] text-xs font-mono flex items-center gap-1 transition cursor-pointer"
-                  title="Export individual stem MIDI files"
+                  onClick={handleManualZipDownload}
+                  disabled={isZipping || !stemBuffersState}
+                  className="px-3 py-1.5 rounded bg-[#DC2626] hover:bg-red-700 text-white font-mono font-bold text-xs flex items-center gap-1.5 transition shadow-crimson-glow disabled:opacity-50 active:scale-95 cursor-pointer"
+                  title="Download 6 Lossless WAV Stems + Standard MIDI File in a single ZIP"
                 >
-                  <Music2 className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Stems MIDI</span>
-                  <ChevronDown className={`w-3 h-3 transition-transform ${showStemMenu ? 'rotate-180' : ''}`} />
-                </button>
-
-                {showStemMenu && (
-                  <div className="absolute right-0 mt-1.5 w-44 bg-[#101217] border border-[#292D38] rounded-lg shadow-2xl py-1 z-30 font-mono text-xs">
-                    {(['vocals', 'bass', 'drums', 'guitar', 'piano', 'other'] as StemType[]).map((stem) => (
-                      <button
-                        key={stem}
-                        onClick={() => {
-                          handleExportStemMidi(stem);
-                          setShowStemMenu(false);
-                        }}
-                        className="w-full text-left px-3 py-1.5 hover:bg-[#1A1D26] text-zinc-300 hover:text-white flex items-center justify-between capitalize transition cursor-pointer"
-                      >
-                        <span>{stem} MIDI</span>
-                        <Download className="w-3 h-3 text-zinc-500" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowMixer(!showMixer)}
-                className={`px-2.5 py-1.5 rounded border text-xs font-mono flex items-center gap-1.5 transition cursor-pointer ${
-                  showMixer
-                    ? 'bg-red-950/40 text-red-300 border-[#DC2626]/50'
-                    : 'bg-[#1A1D26] text-zinc-300 hover:text-white border-[#292D38]'
-                }`}
-                title="Toggle Track Mixer"
-              >
-                <Sliders className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Mixer</span>
-                <span className="text-[10px] text-zinc-500">{showMixer ? '▲' : '▼'}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setShowAudioInput(!showAudioInput)}
-                className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-zinc-400 hover:text-white border border-[#292D38] text-xs font-mono flex items-center gap-1 transition cursor-pointer"
-                title="Upload or record new audio"
-              >
-                <UploadCloud className="w-3.5 h-3.5 text-[#06B6D4]" />
-                <span>{showAudioInput ? 'Hide Audio' : '+ Audio'}</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Compact Auto-Download Notice */}
-        {pipelineResult && autoDownloadNotice && (
-          <div className="bg-[#101217] border border-[#DC2626]/50 rounded-lg px-3.5 py-2 flex items-center justify-between gap-3 text-xs text-zinc-200 shadow-md">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <FileArchive className="w-4 h-4 text-red-400 shrink-0" />
-              <p className="font-mono text-xs text-zinc-300 truncate">
-                {autoDownloadNotice}
-              </p>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={handleManualZipDownload}
-                disabled={isZipping || !stemBuffersState}
-                className="px-2.5 py-1 rounded bg-[#DC2626] hover:bg-red-500 text-white font-mono text-xs font-medium transition cursor-pointer"
-              >
-                {isZipping ? 'Bundling...' : 'Re-download (.ZIP)'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setAutoDownloadNotice(null)}
-                className="p-1 text-zinc-400 hover:text-white cursor-pointer"
-                title="Dismiss"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Streamlined View Switcher Tabs & Studio Panels */}
-        {pipelineResult && (
-          <>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#292D38] pb-2">
-              <div className="flex items-center gap-1.5 overflow-x-auto py-0.5">
-                <button
-                  onClick={() => setActiveTab('timeline')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
-                    activeTab === 'timeline'
-                      ? 'bg-[#1A1D26] text-[#06B6D4] border border-[#06B6D4]/50 shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#101217]'
-                  }`}
-                >
-                  <Layers className="w-3.5 h-3.5 text-[#06B6D4]" />
-                  <span>Timeline</span>
+                  <FileArchive className="w-3.5 h-3.5 text-white" />
+                  <span>{isZipping ? 'Bundling...' : 'Download ZIP'}</span>
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('pianoroll')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
-                    activeTab === 'pianoroll'
-                      ? 'bg-[#1A1D26] text-[#EC4899] border border-[#EC4899]/50 shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#101217]'
-                  }`}
-                >
-                  <Grid className="w-3.5 h-3.5 text-[#EC4899]" />
-                  <span>Piano Roll</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('gemini')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
-                    activeTab === 'gemini'
-                      ? 'bg-[#1A1D26] text-[#8B5CF6] border border-[#8B5CF6]/50 shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#101217]'
-                  }`}
-                >
-                  <Brain className="w-3.5 h-3.5 text-[#8B5CF6]" />
-                  <span>Gemini AI</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('diagnostics')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono transition whitespace-nowrap cursor-pointer font-medium ${
-                    activeTab === 'diagnostics' || activeTab === 'accuracy' || activeTab === 'features'
-                      ? 'bg-[#1A1D26] text-[#10B981] border border-[#10B981]/50 shadow-sm'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-[#101217]'
-                  }`}
-                >
-                  <Gauge className="w-3.5 h-3.5 text-[#10B981]" />
-                  <span>Diagnostics</span>
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsExportOpen(true)}
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded bg-[#101217] hover:bg-[#1A1D26] border border-[#292D38] text-xs font-mono text-zinc-300 hover:text-white transition cursor-pointer"
+                  type="button"
+                  onClick={() => handleExportStemMidi('all')}
+                  className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-[#06B6D4] border border-[#06B6D4]/40 text-xs font-mono font-medium flex items-center gap-1.5 transition active:scale-95 cursor-pointer"
+                  title="Export All Stems as Multi-Track MIDI (.mid)"
                 >
                   <Download className="w-3.5 h-3.5 text-[#06B6D4]" />
-                  <span>Export Center</span>
+                  <span>Bundle MIDI</span>
+                </button>
+
+                {/* Clean Single-Stem MIDI Dropdown */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowStemMenu(!showStemMenu)}
+                    className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-zinc-300 border border-[#292D38] text-xs font-mono flex items-center gap-1 transition cursor-pointer"
+                    title="Export individual stem MIDI files"
+                  >
+                    <Music2 className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Stems MIDI</span>
+                    <ChevronDown
+                      className={`w-3 h-3 transition-transform ${showStemMenu ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  {showStemMenu && (
+                    <div className="absolute right-0 mt-1.5 w-44 bg-[#101217] border border-[#292D38] rounded-lg shadow-2xl py-1 z-30 font-mono text-xs">
+                      {(['vocals', 'bass', 'drums', 'guitar', 'piano', 'other'] as StemType[]).map(
+                        (stem) => (
+                          <button
+                            key={stem}
+                            onClick={() => {
+                              handleExportStemMidi(stem);
+                              setShowStemMenu(false);
+                            }}
+                            className="w-full text-left px-3 py-1.5 hover:bg-[#1A1D26] text-zinc-300 hover:text-white flex items-center justify-between capitalize transition cursor-pointer"
+                          >
+                            <span>{stem} MIDI</span>
+                            <Download className="w-3 h-3 text-zinc-500" />
+                          </button>
+                        ),
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setShowMixer(!showMixer)}
+                  className={`px-2.5 py-1.5 rounded border text-xs font-mono flex items-center gap-1.5 transition cursor-pointer ${
+                    showMixer
+                      ? 'bg-red-950/40 text-red-300 border-[#DC2626]/50'
+                      : 'bg-[#1A1D26] text-zinc-300 hover:text-white border-[#292D38]'
+                  }`}
+                  title="Toggle Track Mixer"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Mixer</span>
+                  <span className="text-[10px] text-zinc-500">{showMixer ? '▲' : '▼'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowAudioInput(!showAudioInput)}
+                  className="px-2.5 py-1.5 rounded bg-[#1A1D26] hover:bg-[#292D38] text-zinc-400 hover:text-white border border-[#292D38] text-xs font-mono flex items-center gap-1 transition cursor-pointer"
+                  title="Upload or record new audio"
+                >
+                  <UploadCloud className="w-3.5 h-3.5 text-[#06B6D4]" />
+                  <span>{showAudioInput ? 'Hide Audio' : '+ Ingest'}</span>
                 </button>
               </div>
             </div>
+          )}
 
-            {/* Tab Views */}
-            {activeTab === 'timeline' && (
-              <TimelineView
-                pipelineResult={pipelineResult}
-                currentTime={currentTime}
-                duration={duration}
-                selectedStem={selectedStem}
-                onSeek={handleSeek}
-                onSelectSection={(sec) => setActiveSection(sec)}
-                activeSection={activeSection}
-              />
-            )}
-
-            {activeTab === 'pianoroll' && (
-              <PianoRollView
-                pipelineResult={pipelineResult}
-                currentTime={currentTime}
-                duration={duration}
-                selectedStem={selectedStem}
-                onSeek={handleSeek}
-                auditionMode={auditionMode}
-                onChangeAuditionMode={handleChangeAuditionMode}
-                onExportStemMidi={handleExportStemMidi}
-              />
-            )}
-
-            {activeTab === 'gemini' && (
-              <GeminiInsightsPanel
-                pipelineResult={pipelineResult}
-                onSelectSection={(sec) => setActiveSection(sec)}
-                activeSection={activeSection}
-              />
-            )}
-
-            {(activeTab === 'diagnostics' || activeTab === 'accuracy' || activeTab === 'features') && (
-              <div className="space-y-4">
-                <AccuracyMetricsPanel pipelineResult={pipelineResult} />
-                <FeatureAnalyticsPanel
-                  pipelineResult={pipelineResult}
-                  currentTime={currentTime}
-                  duration={duration}
-                  onSeek={handleSeek}
-                />
+          {/* Compact Auto-Download Notice */}
+          {pipelineResult && autoDownloadNotice && (
+            <div className="bg-[#101217] border border-[#DC2626]/50 rounded-lg px-3.5 py-2 flex items-center justify-between gap-3 text-xs text-zinc-200 shadow-md">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <FileArchive className="w-4 h-4 text-red-400 shrink-0" />
+                <p className="font-mono text-xs text-zinc-300 truncate">{autoDownloadNotice}</p>
               </div>
-            )}
-
-            {/* Collapsible Stem Mixer */}
-            {showMixer ? (
-              <div className="relative">
-                <TrackMixer
-                  pipelineResult={pipelineResult}
-                  volume={volume}
-                  isMuted={isMuted}
-                  isSoloed={isSoloed}
-                  pan={pan}
-                  selectedStem={selectedStem}
-                  onVolumeChange={(stem, val) => setVolume((prev) => ({ ...prev, [stem]: val }))}
-                  onPanChange={(stem, val) => setPan((prev) => ({ ...prev, [stem]: val }))}
-                  onToggleMute={(stem) => setIsMuted((prev) => ({ ...prev, [stem]: !prev[stem] }))}
-                  onToggleSolo={(stem) => setIsSoloed((prev) => ({ ...prev, [stem]: !prev[stem] }))}
-                  onSelectStemFilter={(stem) => setSelectedStem(stem)}
-                  onExportStemMidi={handleExportStemMidi}
-                  onExportAllMidi={() => handleExportStemMidi('all')}
-                />
-              </div>
-            ) : (
-              <div className="bg-[#101217] border border-[#292D38] rounded-lg px-4 py-2.5 flex items-center justify-between gap-3 text-xs font-mono">
-                <div className="flex items-center gap-3 text-zinc-400">
-                  <Sliders className="w-4 h-4 text-zinc-500" />
-                  <span className="text-zinc-300 font-medium">Console Mixer:</span>
-                  <span className="hidden sm:inline">6 Stems Active · Master Volume {(volume.master * 100).toFixed(0)}%</span>
-                </div>
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setShowMixer(true)}
-                  className="px-3 py-1 rounded bg-[#1A1D26] hover:bg-[#292D38] text-zinc-200 border border-[#292D38] transition cursor-pointer text-xs font-medium"
+                  onClick={handleManualZipDownload}
+                  disabled={isZipping || !stemBuffersState}
+                  className="px-2.5 py-1 rounded bg-[#DC2626] hover:bg-red-500 text-white font-mono text-xs font-medium transition cursor-pointer"
                 >
-                  Show 6-Channel Mixer
+                  {isZipping ? 'Bundling...' : 'Re-download (.ZIP)'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAutoDownloadNotice(null)}
+                  className="p-1 text-zinc-400 hover:text-white cursor-pointer"
+                  title="Dismiss"
+                >
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
-          </>
-        )}
+            </div>
+          )}
 
-        {/* Clean Studio Status Footer */}
-        <footer className="mt-4 bg-[#07080A] border border-[#292D38] rounded-lg px-4 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] font-mono text-zinc-500">
-          <div className="flex items-center gap-4 flex-wrap">
-            <span>ENGINE: <span className="text-zinc-300">WebAudio DSP (6-Stem Crossover)</span></span>
-            <span>AI: <span className="text-zinc-300">Gemini 2.5 Flash</span></span>
-            <span className="hidden md:inline">SAMPLE RATE: <span className="text-zinc-300">44.1 kHz</span></span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span>DSP LATENCY: <span className="text-[#10B981]">~140ms</span></span>
-            <span>ALIGNMENT: <span className="text-[#10B981]">&lt; 1.4ms</span></span>
-          </div>
-        </footer>
-      </main>
+          {/* Primary Active Module View */}
+          {rackNavView === 'matrix-view' && (
+            <TelemetrySoundboard
+              pipelineResult={pipelineResult}
+              stemBuffers={stemBuffersState}
+              isPlaying={isPlaying}
+              currentTime={currentTime}
+              duration={duration}
+              isMuted={isMuted}
+              isSoloed={isSoloed}
+              onToggleMute={(stem) => setIsMuted((prev) => ({ ...prev, [stem]: !prev[stem] }))}
+              onToggleSolo={(stem) => setIsSoloed((prev) => ({ ...prev, [stem]: !prev[stem] }))}
+              onExportStemMidi={handleExportStemMidi}
+              onDownloadZip={handleManualZipDownload}
+            />
+          )}
+
+          {rackNavView === 'spectral-tensor' && pipelineResult && (
+            <TimelineView
+              pipelineResult={pipelineResult}
+              currentTime={currentTime}
+              duration={duration}
+              selectedStem={selectedStem}
+              onSeek={handleSeek}
+              onSelectSection={(sec) => setActiveSection(sec)}
+              activeSection={activeSection}
+            />
+          )}
+
+          {rackNavView === 'midi-extraction-bus' && pipelineResult && (
+            <PianoRollView
+              pipelineResult={pipelineResult}
+              currentTime={currentTime}
+              duration={duration}
+              selectedStem={selectedStem}
+              onSeek={handleSeek}
+              auditionMode={auditionMode}
+              onChangeAuditionMode={handleChangeAuditionMode}
+              onExportStemMidi={handleExportStemMidi}
+            />
+          )}
+
+          {rackNavView === 'phase-and-latency' && pipelineResult && (
+            <div className="space-y-4">
+              <AccuracyMetricsPanel pipelineResult={pipelineResult} />
+              <FeatureAnalyticsPanel
+                pipelineResult={pipelineResult}
+                currentTime={currentTime}
+                duration={duration}
+                onSeek={handleSeek}
+              />
+            </div>
+          )}
+
+          {rackNavView === 'diagnostic-telemetry' && pipelineResult && (
+            <GeminiInsightsPanel
+              pipelineResult={pipelineResult}
+              onSelectSection={(sec) => setActiveSection(sec)}
+              activeSection={activeSection}
+            />
+          )}
+
+          {/* Collapsible Stem Mixer */}
+          {pipelineResult && showMixer && (
+            <div className="relative pt-2">
+              <TrackMixer
+                pipelineResult={pipelineResult}
+                volume={volume}
+                isMuted={isMuted}
+                isSoloed={isSoloed}
+                pan={pan}
+                selectedStem={selectedStem}
+                onVolumeChange={(stem, val) => setVolume((prev) => ({ ...prev, [stem]: val }))}
+                onPanChange={(stem, val) => setPan((prev) => ({ ...prev, [stem]: val }))}
+                onToggleMute={(stem) => setIsMuted((prev) => ({ ...prev, [stem]: !prev[stem] }))}
+                onToggleSolo={(stem) => setIsSoloed((prev) => ({ ...prev, [stem]: !prev[stem] }))}
+                onSelectStemFilter={(stem) => setSelectedStem(stem)}
+                onExportStemMidi={handleExportStemMidi}
+                onExportAllMidi={() => handleExportStemMidi('all')}
+              />
+            </div>
+          )}
+        </main>
+
+        {/* Bottom Rack Enclosure Bezel */}
+        <RackFooter currentTime={currentTime} isPlaying={isPlaying} />
+      </div>
 
       {/* Export Standard MIDI File & Stemmed Audio ZIP Modal */}
       {isExportOpen && (

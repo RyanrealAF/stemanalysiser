@@ -429,3 +429,100 @@ input[type=range]::-webkit-slider-thumb {
     0 1px 2px rgba(0, 0, 0, 0.8),
     inset 0 1px 2px rgba(0, 0, 0, 0.8);
 }
+
+/* Physical Hardware Textures & Skeuomorphic Materials */
+.rack-chassis {
+  background: linear-gradient(180deg, #1f2127 0%, #15171c 45%, #0f1115 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.8), 0 12px 36px rgba(0,0,0,0.7);
+}
+
+.brushed-metal-panel {
+  background: repeating-linear-gradient(90deg, #1b1d24 0px, #22252e 1.5px, #1a1c22 3px, #16181e 4.5px);
+  border-top: 1px solid rgba(255,255,255,0.15);
+  border-bottom: 1px solid rgba(0,0,0,0.9);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -2px 4px rgba(0,0,0,0.6);
+}
+
+.gunmetal-aluminum {
+  background: linear-gradient(175deg, #242730 0%, #1a1c23 60%, #14161c 100%);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.12), inset 1px 0 0 rgba(255,255,255,0.05), inset -1px 0 0 rgba(0,0,0,0.8);
+}
+
+/* Molded Industrial ABS Polymer Enclosure */
+.abs-molded-casing {
+  background: radial-gradient(120% 100% at 50% 0%, #1c1e26 0%, #13151b 75%, #0d0f13 100%);
+  border: 1px solid #2d313c;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), inset 0 -1px 2px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.6);
+}
+
+/* High-gloss Acrylic Display Screen */
+.acrylic-screen {
+  background: #06080b;
+  border: 1px solid #1c212a;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.95), inset 0 0 1px rgba(255,255,255,0.05), 0 1px 0 rgba(255,255,255,0.06);
+  position: relative;
+}
+.acrylic-screen::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 35%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0) 100%);
+  pointer-events: none;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+
+/* Dual-shot Molded Plastic Keycaps & Hardware Buttons */
+.keycap-hardware {
+  background: linear-gradient(180deg, #2a2e38 0%, #1b1e25 80%, #13151a 100%);
+  border-top: 1px solid rgba(255,255,255,0.22);
+  border-left: 1px solid rgba(255,255,255,0.1);
+  border-right: 1px solid rgba(0,0,0,0.6);
+  border-bottom: 2px solid #08090d;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.15);
+}
+.keycap-hardware:active {
+  border-top-color: rgba(0,0,0,0.6);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
+}
+
+/* Backlit Silicone Tactile Audition Pads */
+.tactile-pad {
+  background: linear-gradient(180deg, #222631 0%, #181b22 100%);
+  border: 1px solid #333845;
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.18), 0 2px 5px rgba(0,0,0,0.8), inset 0 -2px 4px rgba(0,0,0,0.4);
+}
+.tactile-pad:active {
+  transform: translateY(1.5px);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.9);
+}
+
+/* Recessed Metal Sliders & Gauge Track */
+.recessed-track {
+  background: #090a0d;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.9), 0 1px 0 rgba(255,255,255,0.06);
+  border: 1px solid #1e222a;
+}
+
+/* Countersunk Hardware Torx/Hex Screw */
+.hex-screw {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #4a505e 0%, #20232a 60%, #111317 100%);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,0.4), 0 1px 2px rgba(0,0,0,0.8);
+  position: relative;
+  display: inline-block;
+}
+.hex-screw::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 5px; height: 1px;
+  background: #0c0d10;
+  transform: translate(-50%, -50%) rotate(42deg);
+  box-shadow: 0 0.5px 0.5px rgba(255,255,255,0.15);
+}
+
