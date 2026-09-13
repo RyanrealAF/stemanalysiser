@@ -16,7 +16,11 @@ import {
   Filter,
   Download,
   Sparkles,
+  ShieldCheck,
+  RefreshCw,
+  AlertTriangle,
 } from 'lucide-react';
+import { PipelineDiagnosticReport } from '../types';
 
 export interface PipelineStep {
   id: number;
@@ -96,12 +100,16 @@ interface PipelineProgressProps {
   currentStep: number; // 0 to 9 (0 = idle, 1..9 = in progress / completed)
   isProcessing: boolean;
   activeMessage: string;
+  diagnosticReport?: PipelineDiagnosticReport | null;
+  onOpenReport?: () => void;
 }
 
 export const PipelineProgress: React.FC<PipelineProgressProps> = ({
   currentStep,
   isProcessing,
   activeMessage,
+  diagnosticReport,
+  onOpenReport,
 }) => {
   return (
     <div className="bg-[#15171C] rounded-lg border border-[#2D3139] p-4 shadow-xl select-none">
@@ -115,13 +123,13 @@ export const PipelineProgress: React.FC<PipelineProgressProps> = ({
             {isProcessing && (
               <span className="flex items-center gap-1 text-[10px] font-mono uppercase font-bold text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/40 animate-pulse">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                Step {currentStep}/9
+                Step {currentStep}/9 (Self-Healing Active)
               </span>
             )}
             {!isProcessing && currentStep === 9 && (
               <span className="flex items-center gap-1 text-[10px] font-mono uppercase font-bold text-green-400 bg-green-950/40 px-2 py-0.5 rounded border border-green-900/50">
                 <CheckCircle className="w-3 h-3" />
-                Aligned & Ready
+                Audited & Ready
               </span>
             )}
           </div>
@@ -129,6 +137,36 @@ export const PipelineProgress: React.FC<PipelineProgressProps> = ({
             {isProcessing ? activeMessage : 'Ensemble decomposition complete: stems tagged by Gemini, quant-aligned, and bleed-purged.'}
           </p>
         </div>
+
+        {/* Verification Audit Report Launcher */}
+        {diagnosticReport && onOpenReport && (
+          <button
+            type="button"
+            onClick={onOpenReport}
+            className={`px-2.5 py-1.5 rounded text-xs font-mono font-bold flex items-center gap-1.5 transition border cursor-pointer ${
+              diagnosticReport.overallStatus === 'auto_healed'
+                ? 'bg-cyan-950/70 text-cyan-300 border-cyan-500/50 hover:bg-cyan-900'
+                : diagnosticReport.overallStatus === 'degraded' || diagnosticReport.overallStatus === 'failed'
+                ? 'bg-amber-950/70 text-amber-300 border-amber-500/50 hover:bg-amber-900'
+                : 'bg-emerald-950/60 text-emerald-400 border-emerald-500/40 hover:bg-emerald-900/80'
+            }`}
+          >
+            {diagnosticReport.overallStatus === 'auto_healed' ? (
+              <RefreshCw className="w-3.5 h-3.5 text-cyan-300 animate-spin" style={{ animationDuration: '6s' }} />
+            ) : diagnosticReport.overallStatus === 'degraded' || diagnosticReport.overallStatus === 'failed' ? (
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+            ) : (
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            )}
+            <span>
+              {diagnosticReport.overallStatus === 'auto_healed'
+                ? `Auto-Healed (${diagnosticReport.recoveredCount} Fixes) • View Audit`
+                : diagnosticReport.overallStatus === 'all_passed'
+                ? 'Verification Audit: 100% Passed'
+                : 'Pipeline Diagnostics'}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* 9-Step High Density Grid */}

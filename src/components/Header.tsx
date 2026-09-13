@@ -12,11 +12,13 @@ import {
   Smartphone,
   Download,
 } from 'lucide-react';
-import { SongPipelineResult } from '../types';
+import { ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react';
+import { PipelineDiagnosticReport, SongPipelineResult } from '../types';
 import { isAndroidPlatform } from '../lib/androidBridge';
 
 interface HeaderProps {
   pipelineResult: SongPipelineResult | null;
+  diagnosticReport?: PipelineDiagnosticReport;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
@@ -27,11 +29,13 @@ interface HeaderProps {
   onOpenExport: () => void;
   onSelectTrackModal: () => void;
   onOpenAndroidPackage?: () => void;
+  onOpenReport?: () => void;
   dspStatus?: 'idle' | 'processing' | 'ready';
 }
 
 export const Header: React.FC<HeaderProps> = ({
   pipelineResult,
+  diagnosticReport,
   isPlaying,
   currentTime,
   duration,
@@ -40,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenExport,
   onSelectTrackModal,
   onOpenAndroidPackage,
+  onOpenReport,
   dspStatus = 'ready',
 }) => {
   const [isAndroid, setIsAndroid] = useState(false);
@@ -161,6 +166,36 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-zinc-400">{duration > 0 ? formatTime(duration) : '--:--'}</span>
           </div>
         </div>
+
+        {/* Pipeline Verification Audit & Diagnostics CTA */}
+        {onOpenReport && (diagnosticReport || pipelineResult) && (
+          <button
+            onClick={onOpenReport}
+            className={`px-2.5 py-1.5 font-mono text-[11px] font-medium rounded border flex items-center gap-1.5 transition cursor-pointer ${
+              diagnosticReport?.overallStatus === 'auto_healed'
+                ? 'bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border-cyan-500/40 shadow-sm'
+                : diagnosticReport?.overallStatus === 'degraded' || diagnosticReport?.overallStatus === 'failed'
+                ? 'bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border-amber-500/40'
+                : 'bg-[#14161b] hover:bg-[#20242e] text-emerald-400 border-emerald-500/30'
+            }`}
+            title="View Pipeline Verification Audit & Diagnostics Report"
+          >
+            {diagnosticReport?.overallStatus === 'auto_healed' ? (
+              <RefreshCw className="w-3.5 h-3.5 text-cyan-300" />
+            ) : diagnosticReport?.overallStatus === 'degraded' || diagnosticReport?.overallStatus === 'failed' ? (
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+            ) : (
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            )}
+            <span className="hidden sm:inline">
+              {diagnosticReport?.overallStatus === 'auto_healed'
+                ? `Healed (${diagnosticReport.recoveredCount})`
+                : diagnosticReport?.overallStatus === 'all_passed'
+                ? 'Audit: 100%'
+                : 'Pipeline Audit'}
+            </span>
+          </button>
+        )}
 
         {/* Ingest / Audio Upload CTA */}
         <button

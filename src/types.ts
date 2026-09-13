@@ -244,6 +244,42 @@ export interface KeyProfile {
   confidence: number;
 }
 
+export type StepCheckStatus = 'passed' | 'warning' | 'recovered' | 'failed';
+
+export interface PipelineStepCheck {
+  stepNumber: number;
+  stepName: string;
+  category: 'ingest' | 'dsp' | 'features' | 'transcription' | 'audit' | 'ai_orchestration' | 'alignment' | 'export';
+  status: StepCheckStatus;
+  attempts: number;
+  maxAttempts: number;
+  durationMs: number;
+  checkDescription: string;
+  verificationCriteria: string;
+  diagnostics: string[];
+  recoveryActionTaken?: string;
+  metrics?: Record<string, string | number | boolean>;
+  timestamp: string;
+}
+
+export interface PipelineDiagnosticReport {
+  reportId: string;
+  audioFileName: string;
+  trackDurationSec: number;
+  sampleRateHz: number;
+  overallStatus: 'all_passed' | 'auto_healed' | 'degraded' | 'failed';
+  totalSteps: number;
+  passedCount: number;
+  recoveredCount: number;
+  warningCount: number;
+  failedCount: number;
+  totalProcessingTimeMs: number;
+  steps: PipelineStepCheck[];
+  recoveryLogs: string[];
+  recommendations: string[];
+  generatedAt: string;
+}
+
 export interface SongPipelineResult {
   metadata: SongMetadata;
   sections: SectionAnalysis[];
@@ -259,6 +295,7 @@ export interface SongPipelineResult {
   automationLanes?: Record<StemType, AutomationLaneData[]>;
   accuracyProfile?: TranscriptionAccuracyProfile;
   collisionAuditLogs?: CollisionResolutionLog[];
+  diagnosticReport?: PipelineDiagnosticReport;
   detectedSubgenre?: 'boom_bap' | 'drill' | 'trap' | 'spoken_word' | 'hybrid';
   geminiExecutiveSummary: string;
   arrangementCritique: string;
