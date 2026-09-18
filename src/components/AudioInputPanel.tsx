@@ -96,6 +96,8 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       const ctx = new AudioCtx();
       const decodedBuffer = await ctx.decodeAudioData(arrayBuffer);
+      // Release the temporary decoder context before the six-stem DSP pipeline allocates its buffers.
+      if (typeof ctx.close === 'function') await ctx.close();
       onCustomAudioUploaded(file, decodedBuffer);
     } catch (err: any) {
       console.error('Error decoding audio file:', err);
@@ -175,6 +177,7 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
         const file = new File([audioBlob], `live-recording-${Date.now()}.webm`, { type: 'audio/webm' });
         const arrayBuffer = await audioBlob.arrayBuffer();
         const decodedBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+        if (typeof audioCtx.close === 'function') await audioCtx.close();
         onCustomAudioUploaded(file, decodedBuffer);
       };
 
@@ -217,6 +220,7 @@ export const AudioInputPanel: React.FC<AudioInputPanelProps> = ({
           const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
           const ctx = new AudioCtx();
           const decodedBuffer = await ctx.decodeAudioData(bytes.buffer.slice(0));
+          if (typeof ctx.close === 'function') await ctx.close();
           onCustomAudioUploaded(file, decodedBuffer);
         } else {
           setUploadError('Failed to capture audio from Android hardware');
