@@ -2,12 +2,11 @@ import { client } from '@gradio/client';
 import { BasicPitch, addPitchBendsToNoteEvents, noteFramesToTime, outputToNotesPoly } from '@spotify/basic-pitch';
 import { Midi } from '@tonejs/midi';
 import JSZip from 'jszip';
-import basicPitchModelUrl from '@spotify/basic-pitch/model/model.json?url';
-
 export const STEMS = ['vocals', 'drums', 'bass', 'guitar', 'piano', 'other'] as const;
 export type StemName = typeof STEMS[number];
 
 const STEMFLOW_SPACE = 'Ryanrealaf/Stemsplitter';
+const BASIC_PITCH_MODEL_URL = 'https://storage.googleapis.com/maestro-dataset/basic_pitch/model.json';
 const MIDI_CHANNELS: Record<StemName, number> = { vocals: 0, bass: 1, drums: 9, guitar: 2, piano: 3, other: 4 };
 const PITCH_RANGES: Record<StemName, [number, number]> = {
   vocals: [36, 96], bass: [28, 72], guitar: [40, 88], piano: [21, 108], other: [28, 108], drums: [0, 127],
@@ -123,7 +122,7 @@ async function transcribeStem(stem: StemName, audioBlob: Blob, model: BasicPitch
 export async function buildStemFlowBundle(separatedBundle: Blob, sourceName: string, onStatus: (message: string) => void): Promise<Blob> {
   const stems = await extractStems(separatedBundle);
   onStatus('Loading Spotify Basic Pitch model...');
-  const model = new BasicPitch(basicPitchModelUrl);
+  const model = new BasicPitch(BASIC_PITCH_MODEL_URL);
   const output = new JSZip();
   const midiBlobs: Partial<Record<StemName, Blob>> = {};
   const analysis: Record<string, any> = {
