@@ -191,9 +191,9 @@ export default function App() {
     setIsPlaying(false);
 
     const songDuration = Math.max(1, decodedBuffer.duration);
-    // Mobile WebView safety: the DSP stage materializes six full-length stereo buffers.
-    // Keep the analysis window bounded until the DSP is converted to true streaming/chunked processing.
-    const dspDuration = Math.min(songDuration, 30);
+    // Full-song analysis is now processed through bounded DSP chunks.
+    // The original AudioBuffer is never truncated.
+    const dspDuration = songDuration;
     setDuration(songDuration);
     const guardian = new PipelineGuardian(file.name, songDuration, decodedBuffer.sampleRate);
 
@@ -254,13 +254,13 @@ export default function App() {
 
       // STEP 2: 6-Stem Multi-Band HTDemucs DSP Separation
       setCurrentStep(2);
-      setProcessingMessage(`[Step 2/9] Executing 6-stem DSP over ${dspDuration.toFixed(1)}s mobile-safe analysis window...`);
+      setProcessingMessage(`[Step 2/9] Executing 6-stem DSP across the full ${dspDuration.toFixed(1)}s song in bounded chunks...`);
 
       const stemBuffers = await guardian.executeWithSelfHealing({
         stepNumber: 2,
         stepName: '6-Stem Multi-Band HTDemucs DSP Separation',
         category: 'dsp',
-        checkDescription: `Execute multi-band crossover DSP graph over a bounded ${dspDuration.toFixed(1)}s mobile-safe analysis window and verify 6 non-empty isolated stem buffers`,
+        checkDescription: `Execute the full ${dspDuration.toFixed(1)}s song through bounded DSP chunks and verify 6 non-empty isolated stem buffers`,
         verificationCriteria: 'All 6 stems (vocals, bass, drums, guitar, piano, other) present with matching sampleRate',
         action: async (attempt) => {
           return await splitAudioIntoStemsUsingDsp(decodedBuffer, dspDuration);
