@@ -98,7 +98,7 @@ async function startServer() {
       res.setHeader('Content-Disposition', `attachment; filename="${path.basename(safeName, extension)}_stemflow.zip"`);
       res.setHeader('Cache-Control', 'no-store');
       return res.sendFile(outputPath, (sendError) => {
-        fs.rm(workdir, { recursive: true, force: true }).catch(() => {});
+        fs.promises.rm(workdir, { recursive: true, force: true }).catch(() => {});
         if (sendError && !res.headersSent) {
           res.status(500).json({ error: 'Failed to send neural processing result.', details: sendError.message });
         }
