@@ -6,6 +6,9 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
+import { spawn } from 'child_process';
+import { pipeline } from 'stream/promises';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { runGeminiFunctionalAnalysis } from './server/geminiService';
@@ -20,6 +23,95 @@ async function startServer() {
   // Middleware
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+  // API Route: Neural stem separation + MIDI conversion.
+  // The browser sends the original file bytes. No AudioBuffer or browser DSP is retained.
+  app.post('/api/process-audio', express.raw({
+    type: ['audio/*', 'application/octet-stream'],
+    limit: '1gb',
+  }), async (req, res) => {
+    const filenameHeader = req.headers['x-filename'];
+    const requestedName = Array.isArray(filenameHeader) ? filenameHeader[0] : filenameHeader;
+    const safeName = String(requestedName || 'input-audio').replace(/[^a-zA-Z0-9._-]/g, '_');
+    const extension = path.extname(safeName) || '.wav';
+
+    if (!Buffer.isBuffer(req.body) || req.body.length === 0) {
+      return res.status(400).json({ error: 'No audio bytes received.' });
+    }
+
+    const workdir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'stemflow-api-'));
+    const inputPath = path.join(workdir, 'input' + extension);
+    const outputPath = path.join(workdir, 'stemflow-results.zip');
+
+    try {
+      await fs.promises.writeFile(inputPath, req.body);
+
+      const python = process.env.STEMFLOW_PYTHON || 'python3';
+      const script = path.join(process.cwd(), 'inference', 'process_song.py');
+
+      if (!fs.existsSync(script)) {
+        return res.status(503).json({
+          error: 'Neural inference engine is not installed in this server build.',
+          details: 'Expected inference/process_song.py',
+        });
+      }
+
+      console.log('[Neural] Starting Demucs + Basic Pitch:', safeName);
+
+      await new Promise<void>((resolve, reject) => {
+        const child = spawn(python, [script, inputPath, outputPath], {
+          env: {
+            ...process.env,
+            PYTHONUNBUFFERED: '1',
+          },
+          stdio: ['ignore', 'pipe', 'pipe'],
+        });
+
+        let tail = '';
+        const collect = (chunk: Buffer) => {
+          tail = (tail + chunk.toString()).slice(-12000);
+          const lines = chunk.toString().split(/\\r?\\n/).filter(Boolean);
+          for (const line of lines) {
+            try {
+              const event = JSON.parse(line);
+              console.log(`[Neural] ${event.stage}: ${event.message}`);
+            } catch {
+              console.log('[Neural]', line);
+            }
+          }
+        };
+
+        child.stdout.on('data', collect);
+        child.stderr.on('data', collect);
+        child.on('error', reject);
+        child.on('close', (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`Neural engine exited with code ${code}. ${tail}`));
+        });
+      });
+
+      if (!fs.existsSync(outputPath)) {
+        throw new Error('Neural engine completed without producing a result archive.');
+      }
+
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', `attachment; filename="${path.basename(safeName, extension)}_stemflow.zip"`);
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(outputPath, (sendError) => {
+        fs.rm(workdir, { recursive: true, force: true }).catch(() => {});
+        if (sendError && !res.headersSent) {
+          res.status(500).json({ error: 'Failed to send neural processing result.', details: sendError.message });
+        }
+      });
+    } catch (err: any) {
+      await fs.promises.rm(workdir, { recursive: true, force: true }).catch(() => {});
+      console.error('[Neural] Processing failed:', err);
+      return res.status(500).json({
+        error: 'Neural audio processing failed.',
+        details: err?.message || String(err),
+      });
+    }
+  });
 
   // API Route: Health Check
   app.get('/api/health', (req, res) => {
