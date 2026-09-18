@@ -26,6 +26,10 @@ export default function App() {
       setError('The selected file is empty.');
       return;
     }
+    if (next.size > 100 * 1024 * 1024) {
+      setError('This free compute path accepts audio files up to 100 MB.');
+      return;
+    }
     setFile(next);
     setStatus('Audio loaded. Ready to process.');
   };
