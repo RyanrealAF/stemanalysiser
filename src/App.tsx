@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 const ACCEPTED = '.wav,.flac,.aiff,.mp3,.m4a,.ogg,.aac,.webm';
+const INFERENCE_BASE = (import.meta.env.VITE_INFERENCE_URL || '').replace(/\/+$/, '');
+const apiUrl = (path: string) => `${INFERENCE_BASE}${path}`;
 
 export default function App() {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -11,7 +13,7 @@ export default function App() {
   const [engine, setEngine] = useState('StemFlow Neural Engine');
 
   useEffect(() => {
-    fetch('/api/models-info')
+    fetch(apiUrl('/api/models-info'))
       .then((response) => response.ok ? response.json() : null)
       .then((info) => {
         if (info?.engine) setEngine(info.engine);
@@ -42,7 +44,7 @@ export default function App() {
     setStatus('Uploading source audio to the neural engine...');
 
     try {
-      const response = await fetch('/api/process-audio', {
+      const response = await fetch(apiUrl('/api/process-audio'), {
         method: 'POST',
         headers: {
           'Content-Type': file.type || 'application/octet-stream',
