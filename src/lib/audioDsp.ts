@@ -551,122 +551,14 @@ function separateTransientAndHarmonic(
   return { transient, harmonic };
 }
 
-/**
- * Full-song stem separation using bounded DSP chunks.
- *
- * The previous implementation rendered the entire song through six independent
- * OfflineAudioContexts at once. On Android WebView that can multiply decoded PCM
- * memory until the renderer is killed. This implementation keeps the expensive
- * DSP working set bounded to one chunk while preserving the complete song timeline.
- *
- * A small overlap gives the transient/harmonic envelope state context at chunk edges.
- */
 export async function splitAudioIntoStemsUsingDsp(
   audioBuffer: AudioBuffer,
   maxDurationSec?: number
 ): Promise<Record<StemType, AudioBuffer>> {
-  const sampleRate = audioBuffer.sampleRate;
-  const fullDuration = maxDurationSec
-    ? Math.min(maxDurationSec, audioBuffer.duration)
-    : audioBuffer.duration;
-
-  if (!Number.isFinite(fullDuration) || fullDuration <= 0) {
-    throw new Error('Audio buffer has no usable duration.');
-  }
-
-  const totalLength = Math.max(1, Math.floor(fullDuration * sampleRate));
-  const stems: StemType[] = ['vocals', 'bass', 'drums', 'guitar', 'piano', 'other'];
-  const channelCount = 2;
-
-  // Mobile-safe working set. Desktop can use a larger chunk without changing output.
-  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const chunkSec = isMobile ? 12 : 20;
-  const overlapSec = 0.5;
-
-  const outputCtx = new OfflineAudioContext(channelCount, totalLength, sampleRate);
-  const results: Record<StemType, AudioBuffer> = {} as any;
-  for (const stem of stems) {
-    results[stem] = outputCtx.createBuffer(channelCount, totalLength, sampleRate);
-  }
-
-  const sourceChannels = audioBuffer.numberOfChannels;
-  const left = audioBuffer.getChannelData(0);
-  const right = sourceChannels > 1 ? audioBuffer.getChannelData(1) : left;
-
-  let coreStartSec = 0;
-  let chunkIndex = 0;
-
-  while (coreStartSec < fullDuration) {
-    const coreEndSec = Math.min(fullDuration, coreStartSec + chunkSec);
-    const windowStartSec = Math.max(0, coreStartSec - overlapSec);
-    const windowEndSec = Math.min(fullDuration, coreEndSec + overlapSec);
-
-    const windowStart = Math.floor(windowStartSec * sampleRate);
-    const windowEnd = Math.min(totalLength, Math.ceil(windowEndSec * sampleRate));
-    const windowLength = Math.max(1, windowEnd - windowStart);
-
-    const chunkCtx = new OfflineAudioContext(channelCount, windowLength, sampleRate);
-    const chunk = chunkCtx.createBuffer(channelCount, windowLength, sampleRate);
-    chunk.getChannelData(0).set(left.subarray(windowStart, windowEnd));
-    chunk.getChannelData(1).set(right.subarray(windowStart, windowEnd));
-
-    try {
-      const chunkStems = await splitAudioChunkUsingHTDemucs6(
-        chunk,
-        windowLength / sampleRate
-      );
-
-      const copyStart = Math.floor((coreStartSec - windowStartSec) * sampleRate);
-      const copyEnd = Math.min(
-        windowLength,
-        copyStart + Math.floor((coreEndSec - coreStartSec) * sampleRate)
-      );
-      const copyLength = Math.max(0, copyEnd - copyStart);
-      const destinationStart = Math.floor(coreStartSec * sampleRate);
-
-      for (const stem of stems) {
-        const srcL = chunkStems[stem].getChannelData(0);
-        const srcR = chunkStems[stem].getChannelData(1);
-        const dstL = results[stem].getChannelData(0);
-        const dstR = results[stem].getChannelData(1);
-
-        if (copyLength > 0) {
-          dstL.set(srcL.subarray(copyStart, copyEnd), destinationStart);
-          dstR.set(srcR.subarray(copyStart, copyEnd), destinationStart);
-        }
-      }
-    } finally {
-      if (typeof chunkCtx.close === 'function') {
-        await chunkCtx.close().catch(() => undefined);
-      }
-    }
-
-    chunkIndex++;
-    coreStartSec = coreEndSec;
-
-    // Yield between chunks so Android's renderer can service GC and UI work.
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  }
-
-  for (const stem of stems) {
-    normalizeAudioBuffer(results[stem], 0.92);
-  }
-
-  return results;
+  return splitAudioIntoStemsUsingHTDemucs6(audioBuffer, maxDurationSec);
 }
 
-/**
- * Backward-compatible named export for callers that explicitly request the
- * legacy single-window implementation. New code should use splitAudioIntoStemsUsingDsp.
- */
 export async function splitAudioIntoStemsUsingHTDemucs6(
-  audioBuffer: AudioBuffer,
-  maxDurationSec?: number
-): Promise<Record<StemType, AudioBuffer>> {
-  return splitAudioChunkUsingHTDemucs6(audioBuffer, maxDurationSec);
-}
-
-async function splitAudioChunkUsingHTDemucs6(
   audioBuffer: AudioBuffer,
   maxDurationSec?: number
 ): Promise<Record<StemType, AudioBuffer>> {
