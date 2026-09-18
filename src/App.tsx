@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { buildStemFlowBundle, separateWithStemsplitter } from './lib/stemflowBrowserEngine';
 
 const ACCEPTED = '.wav,.flac,.aiff,.mp3,.m4a,.ogg,.aac,.webm';
-const INFERENCE_BASE = (import.meta.env.VITE_INFERENCE_URL || '').replace(/\/+$/, '');
-const apiUrl = (path: string) => `${INFERENCE_BASE}${path}`;
+const MAX_BYTES = 100 * 1024 * 1024;
 
 export default function App() {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -10,16 +10,6 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Ready');
   const [error, setError] = useState<string | null>(null);
-  const [engine, setEngine] = useState('StemFlow Neural Engine');
-
-  useEffect(() => {
-    fetch(apiUrl('/api/models-info'))
-      .then((response) => response.ok ? response.json() : null)
-      .then((info) => {
-        if (info?.engine) setEngine(info.engine);
-      })
-      .catch(() => {});
-  }, []);
 
   const chooseFile = (next: File | null) => {
     setError(null);
@@ -28,7 +18,7 @@ export default function App() {
       setError('The selected file is empty.');
       return;
     }
-    if (next.size > 100 * 1024 * 1024) {
+    if (next.size > MAX_BYTES) {
       setError('This free compute path accepts audio files up to 100 MB.');
       return;
     }
@@ -41,34 +31,25 @@ export default function App() {
 
     setBusy(true);
     setError(null);
-    setStatus('Uploading source audio to the neural engine...');
 
     try {
-      const response = await fetch(apiUrl('/api/process-audio'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': file.type || 'application/octet-stream',
-          'X-Filename': encodeURIComponent(file.name),
-        },
-        body: file,
-      });
+      const separatedBundle = await separateWithStemsplitter(file, setStatus);
+      const finalBundle = await buildStemFlowBundle(
+        separatedBundle,
+        file.name,
+        setStatus,
+      );
 
-      if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.details || payload.error || `Processing failed (HTTP ${response.status}).`);
-      }
-
-      setStatus('Neural separation and MIDI transcription complete. Preparing archive...');
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
+      setStatus('Complete. Saving stems + MIDI archive...');
+      const url = URL.createObjectURL(finalBundle);
       const anchor = document.createElement('a');
       anchor.href = url;
-      anchor.download = `${file.name.replace(/\.[^/.]+$/, '')}_stemflow.zip`;
+      anchor.download = `${file.name.replace(/\\.[^/.]+$/, '')}_stemflow.zip`;
       document.body.appendChild(anchor);
       anchor.click();
       anchor.remove();
       URL.revokeObjectURL(url);
-      setStatus('Complete. ZIP contains six WAV stems, six MIDI files, combined MIDI, and analysis.json.');
+      setStatus('Complete. Six WAV stems, six MIDI files, combined MIDI, and analysis.json.');
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
@@ -89,7 +70,7 @@ export default function App() {
             StemFlow
           </h1>
           <p className="mt-2 text-sm text-zinc-400">
-            Real neural stem separation followed by instrument-specific MIDI transcription.
+            HTDemucs 6s separation → Spotify Basic Pitch MIDI. No paid backend required.
           </p>
         </header>
 
@@ -150,9 +131,10 @@ export default function App() {
         </div>
 
         <footer className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[10px] font-mono text-zinc-600">
-          <span>{engine}</span>
+          <span>Ryanrealaf/Stemsplitter</span>
           <span>HTDemucs 6-source</span>
-          <span>Basic Pitch AMT</span>
+          <span>Spotify Basic Pitch</span>
+          <span>Browser MIDI pass</span>
           <span>No synthetic accuracy score</span>
         </footer>
       </section>
