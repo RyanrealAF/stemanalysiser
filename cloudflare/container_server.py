@@ -9,7 +9,7 @@ import urllib.parse
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
-MAX_UPLOAD_BYTES = 1024 * 1024 * 1024
+MAX_UPLOAD_BYTES = 100 * 1024 * 1024
 PORT = 8080
 
 
