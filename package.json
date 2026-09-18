@@ -16,7 +16,7 @@
     "@capacitor/core": "^8.5.1",
     "@google/genai": "^2.4.0",
     "@gradio/client": "^1.19.0",
-    "@spotify/basic-pitch": "^0.0.0-development",
+    "@spotify/basic-pitch": "^1.0.1",
     "@tailwindcss/vite": "^4.1.14",
     "@tonejs/midi": "^2.0.28",
     "@vitejs/plugin-react": "^5.0.4",
