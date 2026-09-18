@@ -191,6 +191,9 @@ export default function App() {
     setIsPlaying(false);
 
     const songDuration = Math.max(1, decodedBuffer.duration);
+    // Mobile WebView safety: the DSP stage materializes six full-length stereo buffers.
+    // Keep the analysis window bounded until the DSP is converted to true streaming/chunked processing.
+    const dspDuration = Math.min(songDuration, 30);
     setDuration(songDuration);
     const guardian = new PipelineGuardian(file.name, songDuration, decodedBuffer.sampleRate);
 
@@ -251,16 +254,16 @@ export default function App() {
 
       // STEP 2: 6-Stem Multi-Band HTDemucs DSP Separation
       setCurrentStep(2);
-      setProcessingMessage('[Step 2/9] Executing 6-stem multi-band DSP crossover filter graph...');
+      setProcessingMessage(`[Step 2/9] Executing 6-stem DSP over ${dspDuration.toFixed(1)}s mobile-safe analysis window...`);
 
       const stemBuffers = await guardian.executeWithSelfHealing({
         stepNumber: 2,
         stepName: '6-Stem Multi-Band HTDemucs DSP Separation',
         category: 'dsp',
-        checkDescription: 'Execute multi-band crossover DSP graph and verify 6 non-empty isolated stem buffers',
+        checkDescription: `Execute multi-band crossover DSP graph over a bounded ${dspDuration.toFixed(1)}s mobile-safe analysis window and verify 6 non-empty isolated stem buffers`,
         verificationCriteria: 'All 6 stems (vocals, bass, drums, guitar, piano, other) present with matching sampleRate',
         action: async (attempt) => {
-          return await splitAudioIntoStemsUsingDsp(decodedBuffer, songDuration);
+          return await splitAudioIntoStemsUsingDsp(decodedBuffer, dspDuration);
         },
         validator: (buffers) => {
           const stems: StemType[] = ['vocals', 'bass', 'drums', 'guitar', 'piano', 'other'];
@@ -337,7 +340,7 @@ export default function App() {
         checkDescription: 'Extract monophonic/polyphonic MIDI note events across all 6 stems with dynamic pitch detection',
         verificationCriteria: 'At least 1 valid MIDI note generated with pitch in range 21..108',
         action: async (attempt) => {
-          return transcribeAudioStemsToMidiNotes(stemBuffers, songDuration, estimatedBpm);
+          return transcribeAudioStemsToMidiNotes(stemBuffers, dspDuration, estimatedBpm);
         },
         validator: (notes) => {
           const validPitch = notes.filter((n) => n.pitch >= 21 && n.pitch <= 108);
@@ -1248,35 +1251,3 @@ export default function App() {
         <ExportPanel
           pipelineResult={pipelineResult}
           stemBuffers={stemBuffersState}
-          onClose={() => setIsExportOpen(false)}
-        />
-      )}
-
-      {/* Complete Android APK & Native SDK Package Modal */}
-      {isAndroidModalOpen && (
-        <AndroidPackageModal onClose={() => setIsAndroidModalOpen(false)} />
-      )}
-
-      {/* Automatic Processed Audio Stems & MIDI Download Center Modal */}
-      {isDownloadModalOpen && pipelineResult && (
-        <DownloadProcessedModal
-          isOpen={isDownloadModalOpen}
-          onClose={() => setIsDownloadModalOpen(false)}
-          pipelineResult={pipelineResult}
-          stemBuffers={stemBuffersState}
-          cachedZipBlob={cachedZipBlob}
-          autoDownloadTriggered={autoDownloadTriggered}
-        />
-      )}
-
-      {/* Pipeline Verification Audit & Diagnostics Self-Healing Report Modal */}
-      {(pipelineReport || pipelineResult?.diagnosticReport) && (
-        <PipelineReportModal
-          report={pipelineReport || pipelineResult!.diagnosticReport!}
-          isOpen={isReportModalOpen}
-          onClose={() => setIsReportModalOpen(false)}
-        />
-      )}
-    </div>
-  );
-}
