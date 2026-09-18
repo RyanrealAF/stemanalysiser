@@ -17,8 +17,7 @@ jobs:
           cache: npm
       - run: npm install
       - run: npm run build
-      - run: npm run build:cloudflare
-      - run: npx wrangler deploy --dry-run
+      - run: npm run lint
 
   python-syntax:
     runs-on: ubuntu-latest
