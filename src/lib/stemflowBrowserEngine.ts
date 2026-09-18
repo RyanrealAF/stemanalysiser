@@ -1,4 +1,4 @@
-import { client } from '@gradio/client';
+import { Client, handle_file } from '@gradio/client';
 import { BasicPitch, addPitchBendsToNoteEvents, noteFramesToTime, outputToNotesPoly } from '@spotify/basic-pitch';
 import { Midi } from '@tonejs/midi';
 import JSZip from 'jszip';
@@ -35,7 +35,11 @@ async function resolveGradioFile(value: any): Promise<Blob> {
     throw new Error(`Stemsplitter returned an inaccessible local file path: ${value}`);
   }
   if (value && typeof value === 'object') {
-    if (value.url) return resolveGradioFile(value.url);
+    if (value.url) {
+      const response = await fetch(value.url, { mode: 'cors' });
+      if (!response.ok) throw new Error(`Could not download Stemsplitter output (HTTP ${response.status}).`);
+      return response.blob();
+    }
     if (value.path && /^https?:\/\//i.test(value.path)) return resolveGradioFile(value.path);
     if (value.blob instanceof Blob) return value.blob;
   }
@@ -44,11 +48,16 @@ async function resolveGradioFile(value: any): Promise<Blob> {
 
 export async function separateWithStemsplitter(file: File, onStatus: (message: string) => void): Promise<Blob> {
   onStatus('Connecting to Ryanrealaf/Stemsplitter...');
-  const app = await client(STEMFLOW_SPACE);
+  const app = await Client.connect(STEMFLOW_SPACE, {
+    events: ['data', 'status'],
+    status_callback: (status: any) => {
+      if (status?.message) onStatus(`Stemsplitter: ${status.message}`);
+    },
+  });
   const apiInfo = await app.view_api();
   const endpoint = pickEndpoint(apiInfo);
   onStatus('Submitting audio to HTDemucs 6s...');
-  const result = await app.predict(endpoint, [file]);
+  const result = await app.predict(endpoint, [handle_file(file)]);
   const data = Array.isArray(result.data) ? result.data : [result.data];
   const fileCandidate = data.find((item: any) =>
     typeof item === 'string' ? /\.(zip|wav)$/i.test(item) : Boolean(item?.url || item?.path || item?.blob instanceof Blob)
