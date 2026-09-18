@@ -22,19 +22,17 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import Dict, Iterable, Tuple
+from typing import Dict
 
 import librosa
 import numpy as np
-import soundfile as sf
 from basic_pitch import ICASSP_2022_MODEL_PATH
-from basic_pitch.inference import Model, FilenameSuffix, predict
+from basic_pitch.inference import Model, predict
 import mido
 
 
@@ -83,27 +81,12 @@ def choose_basic_pitch_model() -> Model:
     # Prefer the package's ONNX model so the inference environment does not need
     # the heavyweight TensorFlow runtime.
     try:
-        onnx_path = Path(str(ICASSP_2022_MODEL_PATH).replace("nmp", "nmp.onnx"))
+        onnx_path = Path(ICASSP_2022_MODEL_PATH).parent / "nmp.onnx"
         if onnx_path.exists():
             return Model(onnx_path)
     except Exception:
         pass
     return Model(ICASSP_2022_MODEL_PATH)
-
-
-def transpose_midi_channels(mid: mido.MidiFile, channel: int, name: str) -> mido.MidiFile:
-    out = mido.MidiFile(type=1, ticks_per_beat=mid.ticks_per_beat)
-    track = mido.MidiTrack()
-    track.append(mido.MetaMessage("track_name", name=name, time=0))
-    for msg in mid.tracks[0] if mid.tracks else []:
-        if msg.is_meta:
-            if msg.type not in {"track_name", "end_of_track"}:
-                track.append(msg.copy())
-            continue
-        if msg.type in {"note_on", "note_off", "control_change", "program_change", "pitchwheel"}:
-            track.append(msg.copy(channel=channel))
-    out.tracks.append(track)
-    return out
 
 
 def transcribe_basic_pitch(
