@@ -67,18 +67,55 @@ export async function separateWithStemsplitter(file: File, onStatus: (progress: 
   report({ phase: 'connecting', message: 'Connecting to Stemsplitter...' });
   const app = await Client.connect(STEMFLOW_SPACE, {
     events: ['data', 'status'],
-    status_callback: (status: any) => {
-      if (status?.message) {
-        report({ phase: status.load_status === 'generating' ? 'separating' : 'connecting', message: `Stemsplitter: ${status.message}` });
-      }
-    },
   });
   const apiInfo = await app.view_api();
   const endpoint = pickEndpoint(apiInfo);
   report({ phase: 'separating', message: 'Uploading audio and submitting HTDemucs 6s job...' });
-  const result = await app.predict(endpoint, [handle_file(file)]);
-  const data = Array.isArray(result.data) ? result.data : [result.data];
-  const fileCandidate = data.find((item: any) =>
+
+  const job = app.submit(endpoint, [handle_file(file)]);
+  let finalData: any[] | null = null;
+
+  for await (const message of job) {
+    if (message.type === 'status') {
+      const status: any = message;
+      const etaSeconds = typeof status.eta === 'number' ? Math.max(0, Math.round(status.eta)) : undefined;
+      const queueSize = typeof status.size === 'number' ? status.size : undefined;
+      const position = typeof status.position === 'number' ? status.position + 1 : undefined;
+
+      if (status.stage === 'pending') {
+        report({
+          phase: 'queued',
+          position,
+          queueSize,
+          etaSeconds,
+          message: `Stemsplitter: queued${position ? ` at position ${position}` : ''}${queueSize ? ` of ${queueSize}` : ''}${etaSeconds !== undefined ? ` | ETA ${etaSeconds}s` : ''}`,
+        });
+      } else if (status.stage === 'generating') {
+        const progressData = Array.isArray(status.progress_data) ? status.progress_data : [];
+        const progressEntry = progressData.find((entry: any) => typeof entry?.progress === 'number');
+        const percent = progressEntry ? Math.max(0, Math.min(100, Math.round(progressEntry.progress * 100))) : undefined;
+        const detail = progressEntry?.desc || status.message || 'HTDemucs is separating the six sources...';
+
+        report({
+          phase: 'separating',
+          percent,
+          position,
+          queueSize,
+          etaSeconds,
+          message: `Stemsplitter: ${detail}${percent !== undefined ? ` ${percent}%` : ''}${etaSeconds !== undefined ? ` | ETA ${etaSeconds}s` : ''}`,
+        });
+      } else if (status.stage === 'error') {
+        throw new Error(status.message || 'Stemsplitter reported a processing error.');
+      } else if (status.stage === 'complete') {
+        report({ phase: 'separating', message: 'Stemsplitter: separation complete. Preparing the stem bundle...' });
+      }
+    } else if (message.type === 'data') {
+      finalData = Array.isArray(message.data) ? message.data : [message.data];
+    }
+  }
+
+  if (!finalData) throw new Error('Stemsplitter ended without returning a production bundle.');
+  const fileCandidate = finalData.find((item: any) =>
     typeof item === 'string' ? /\.(zip|wav)$/i.test(item) : Boolean(item?.url || item?.path || item?.blob instanceof Blob)
   );
   if (!fileCandidate) throw new Error('Stemsplitter completed without returning a downloadable production bundle.');
