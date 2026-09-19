@@ -46,24 +46,43 @@ async function resolveGradioFile(value: any): Promise<Blob> {
   throw new Error('Stemsplitter returned an unsupported file result.');
 }
 
-export async function separateWithStemsplitter(file: File, onStatus: (message: string) => void): Promise<Blob> {
-  onStatus('Connecting to Ryanrealaf/Stemsplitter...');
+export type SeparationProgress = {
+  phase: 'connecting' | 'queued' | 'separating' | 'complete';
+  message: string;
+  percent?: number;
+  position?: number;
+  queueSize?: number;
+  etaSeconds?: number;
+  elapsedSeconds?: number;
+};
+
+export async function separateWithStemsplitter(file: File, onStatus: (progress: SeparationProgress) => void): Promise<Blob> {
+  const startedAt = Date.now();
+  const report = (progress: Omit<SeparationProgress, 'elapsedSeconds'>) => {
+    onStatus({
+      ...progress,
+      elapsedSeconds: Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
+    });
+  };
+  report({ phase: 'connecting', message: 'Connecting to Stemsplitter...' });
   const app = await Client.connect(STEMFLOW_SPACE, {
     events: ['data', 'status'],
     status_callback: (status: any) => {
-      if (status?.message) onStatus(`Stemsplitter: ${status.message}`);
+      if (status?.message) {
+        report({ phase: status.load_status === 'generating' ? 'separating' : 'connecting', message: `Stemsplitter: ${status.message}` });
+      }
     },
   });
   const apiInfo = await app.view_api();
   const endpoint = pickEndpoint(apiInfo);
-  onStatus('Submitting audio to HTDemucs 6s...');
+  report({ phase: 'separating', message: 'Uploading audio and submitting HTDemucs 6s job...' });
   const result = await app.predict(endpoint, [handle_file(file)]);
   const data = Array.isArray(result.data) ? result.data : [result.data];
   const fileCandidate = data.find((item: any) =>
     typeof item === 'string' ? /\.(zip|wav)$/i.test(item) : Boolean(item?.url || item?.path || item?.blob instanceof Blob)
   );
   if (!fileCandidate) throw new Error('Stemsplitter completed without returning a downloadable production bundle.');
-  onStatus('Downloading separated stems...');
+  report({ phase: 'complete', message: 'Downloading the six separated WAV stems...' });
   return resolveGradioFile(fileCandidate);
 }
 
