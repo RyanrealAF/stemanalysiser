@@ -45,16 +45,27 @@ export default function App() {
         setStatus,
       );
 
-      setStatus('Complete. Saving stems + MIDI archive...');
-      const url = URL.createObjectURL(finalBundle);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = `${file.name.replace(/\\.[^/.]+$/, '')}_stemflow.zip`;
-      document.body.appendChild(anchor);
-      anchor.click();
-      anchor.remove();
-      URL.revokeObjectURL(url);
-      setStatus('Complete. Six WAV stems, six MIDI files, combined MIDI, and analysis.json.');
+      setStatus('Complete. Saving MIDI archive...');
+      const midiUrl = URL.createObjectURL(finalBundle);
+      const midiAnchor = document.createElement('a');
+      midiAnchor.href = midiUrl;
+      midiAnchor.download = file.name.replace(/\.[^/.]+$/, '') + '_midi.zip';
+      document.body.appendChild(midiAnchor);
+      midiAnchor.click();
+      midiAnchor.remove();
+      setTimeout(() => URL.revokeObjectURL(midiUrl), 5000);
+
+      setStatus('MIDI archive saved. Saving original separated stems...');
+      const stemUrl = URL.createObjectURL(separatedBundle);
+      const stemAnchor = document.createElement('a');
+      stemAnchor.href = stemUrl;
+      stemAnchor.download = file.name.replace(/\.[^/.]+$/, '') + '_stems.zip';
+      document.body.appendChild(stemAnchor);
+      stemAnchor.click();
+      stemAnchor.remove();
+      setTimeout(() => URL.revokeObjectURL(stemUrl), 5000);
+
+      setStatus('Complete. MIDI archive and original six-stem archive saved.');
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
