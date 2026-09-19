@@ -44,16 +44,64 @@ async function resolveGradioFile(value: any): Promise<Blob> {
 
 export async function separateWithStemsplitter(file: File, onStatus: (message: string) => void): Promise<Blob> {
   onStatus('Connecting to Ryanrealaf/Stemsplitter...');
-  const app = await client(STEMFLOW_SPACE);
+  const app = await Client.connect(STEMFLOW_SPACE, {
+    events: ['data', 'status'],
+    status_callback: (status: any) => {
+      if (status?.message) onStatus(`Stemsplitter: ${status.message}`);
+    },
+  });
+
   const apiInfo = await app.view_api();
   const endpoint = pickEndpoint(apiInfo);
   onStatus('Submitting audio to HTDemucs 6s...');
-  const result = await app.predict(endpoint, [file]);
-  const data = Array.isArray(result.data) ? result.data : [result.data];
-  const fileCandidate = data.find((item: any) =>
-    typeof item === 'string' ? /\.(zip|wav)$/i.test(item) : Boolean(item?.url || item?.path || item?.blob instanceof Blob)
+
+  // Use the Gradio job stream instead of awaiting a single HTTP request.
+  // Demucs can take longer than a browser's normal request timeout, while
+  // Gradio's queue uses server-sent events to keep the client informed.
+  const job = app.submit(endpoint, [handle_file(file)]);
+  let finalData: any[] | null = null;
+
+  for await (const message of job) {
+    if (message.type === 'status') {
+      const status: any = message;
+      if (status.stage === 'pending') {
+        const position = typeof status.position === 'number'
+          ? ` queue position ${status.position + 1}`
+          : '';
+        const eta = typeof status.eta === 'number'
+          ? ` ETA ${Math.max(0, Math.round(status.eta))}s`
+          : '';
+        onStatus(`Stemsplitter: queued${position}.${eta}`);
+      } else if (status.stage === 'generating') {
+        const detail = status.message ? ` ${status.message}` : '';
+        const eta = typeof status.eta === 'number'
+          ? ` ETA ${Math.max(0, Math.round(status.eta))}s`
+          : '';
+        onStatus(`Stemsplitter: processing...${detail}${eta}`);
+      } else if (status.stage === 'error') {
+        throw new Error(status.message || 'Stemsplitter reported a processing error.');
+      } else if (status.stage === 'complete') {
+        onStatus('Stemsplitter: separation complete.');
+      }
+    } else if (message.type === 'data') {
+      finalData = Array.isArray(message.data) ? message.data : [message.data];
+    }
+  }
+
+  if (!finalData) {
+    throw new Error('Stemsplitter ended without returning its output bundle.');
+  }
+
+  const fileCandidate = finalData.find((item: any) =>
+    typeof item === 'string'
+      ? /\\.(zip|wav)$/i.test(item)
+      : Boolean(item?.url || item?.path || item?.blob instanceof Blob)
   );
-  if (!fileCandidate) throw new Error('Stemsplitter completed without returning a downloadable production bundle.');
+
+  if (!fileCandidate) {
+    throw new Error('Stemsplitter completed without returning a downloadable production bundle.');
+  }
+
   onStatus('Downloading separated stems...');
   return resolveGradioFile(fileCandidate);
 }
