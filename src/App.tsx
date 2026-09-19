@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { buildStemFlowBundle, separateWithStemsplitter } from './lib/stemflowBrowserEngine';
+import { buildStemFlowBundle, separateWithStemsplitter, type SeparationProgress } from './lib/stemflowBrowserEngine';
 
 const ACCEPTED = '.wav,.flac,.aiff,.mp3,.m4a,.ogg,.aac,.webm';
 const MAX_BYTES = 100 * 1024 * 1024;
@@ -10,6 +10,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Ready');
   const [error, setError] = useState<string | null>(null);
+  const [separationProgress, setSeparationProgress] = useState<SeparationProgress | null>(null);
 
   const chooseFile = (next: File | null) => {
     setError(null);
@@ -31,9 +32,13 @@ export default function App() {
 
     setBusy(true);
     setError(null);
+    setSeparationProgress(null);
 
     try {
-      const separatedBundle = await separateWithStemsplitter(file, setStatus);
+      const separatedBundle = await separateWithStemsplitter(file, (progress) => {
+        setSeparationProgress(progress);
+        setStatus(progress.message);
+      });
       const finalBundle = await buildStemFlowBundle(
         separatedBundle,
         file.name,
@@ -122,6 +127,45 @@ export default function App() {
           <div aria-live="polite" className="mt-4 text-xs font-mono text-zinc-400">
             {status}
           </div>
+
+          {busy && separationProgress && (
+            <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900/70 p-3 font-mono">
+              <div className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-wider text-zinc-500">
+                <span>
+                  {separationProgress.phase === 'queued' ? 'Queue' : 'Separation'}
+                </span>
+                <span>
+                  {separationProgress.elapsedSeconds ?? 0}s elapsed
+                </span>
+              </div>
+
+              <div className="mt-2 h-2 overflow-hidden rounded-full bg-zinc-800">
+                <div
+                  className="h-full bg-zinc-300 transition-all duration-500"
+                  style={{ width: `${separationProgress.percent ?? (separationProgress.phase === 'separating' ? 8 : 0)}%` }}
+                />
+              </div>
+
+              <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[10px] text-zinc-500">
+                {typeof separationProgress.percent === 'number' && (
+                  <span>{separationProgress.percent}% reported</span>
+                )}
+                {typeof separationProgress.position === 'number' && (
+                  <span>position #{separationProgress.position}</span>
+                )}
+                {typeof separationProgress.queueSize === 'number' && (
+                  <span>{separationProgress.queueSize} queued</span>
+                )}
+                {typeof separationProgress.etaSeconds === 'number' && (
+                  <span>ETA ~{separationProgress.etaSeconds}s</span>
+                )}
+              </div>
+
+              <div className="mt-2 text-[11px] text-zinc-300">
+                {separationProgress.message}
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="mt-3 p-3 rounded-lg border border-red-900 bg-red-950/30 text-xs font-mono text-red-300 whitespace-pre-wrap">
