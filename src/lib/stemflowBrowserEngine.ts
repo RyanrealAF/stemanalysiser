@@ -123,15 +123,14 @@ export async function separateWithStemsplitter(file: File, onStatus: (progress: 
   return resolveGradioFile(fileCandidate);
 }
 
-async function extractStems(bundle: Blob): Promise<Record<StemName, Blob>> {
-  const zip = await JSZip.loadAsync(bundle);
-  const stems = {} as Record<StemName, Blob>;
-  for (const stem of STEMS) {
-    const entry = zip.file(`stems/${stem}.wav`);
-    if (!entry) throw new Error(`Stemsplitter bundle is missing stems/${stem}.wav`);
-    stems[stem] = new Blob([await entry.async('uint8array')], { type: 'audio/wav' });
-  }
-  return stems;
+async function openStemZip(bundle: Blob): Promise<JSZip> {
+  return JSZip.loadAsync(bundle);
+}
+
+async function readStem(zip: JSZip, stem: StemName): Promise<Blob> {
+  const entry = zip.file(`stems/${stem}.wav`);
+  if (!entry) throw new Error(`Stemsplitter bundle is missing stems/${stem}.wav`);
+  return new Blob([await entry.async('uint8array')], { type: 'audio/wav' });
 }
 
 function writeMidi(stem: StemName, notes: BasicPitchNote[]): Blob {
@@ -194,7 +193,7 @@ async function transcribeStem(stem: StemName, audioBlob: Blob, model: BasicPitch
 }
 
 export async function buildStemFlowBundle(separatedBundle: Blob, sourceName: string, onStatus: (message: string) => void): Promise<Blob> {
-  const stems = await extractStems(separatedBundle);
+  const stemZip = await openStemZip(separatedBundle);
   onStatus('Loading Spotify Basic Pitch model...');
   const model = new BasicPitch(BASIC_PITCH_MODEL_URL);
   const output = new JSZip();
@@ -213,11 +212,12 @@ export async function buildStemFlowBundle(separatedBundle: Blob, sourceName: str
     ],
   };
   for (const stem of STEMS) {
-    const result = await transcribeStem(stem, stems[stem], model, onStatus);
+    onStatus(`Reading and transcribing ${stem} stem...`);
+    const stemBlob = await readStem(stemZip, stem);
+    const result = await transcribeStem(stem, stemBlob, model, onStatus);
     midiBlobs[stem] = result.midi;
     analysis.notes[stem] = result.noteCount;
     output.file(`midi/${stem}.mid`, result.midi);
-    output.file(`stems/${stem}.wav`, stems[stem]);
   }
   const combined = new Midi();
   for (const stem of STEMS) {
@@ -232,6 +232,6 @@ export async function buildStemFlowBundle(separatedBundle: Blob, sourceName: str
   }
   output.file('midi/combined.mid', new Blob([combined.toArray()], { type: 'audio/midi' }));
   output.file('analysis.json', JSON.stringify(analysis, null, 2));
-  onStatus('Building final MIDI + stem archive...');
-  return output.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+  onStatus('Packaging MIDI archive without recompressing large WAV stems...');
+  return output.generateAsync({ type: 'blob', compression: 'STORE', streamFiles: true });
 }
