@@ -161,7 +161,16 @@ async function transcribeStem(stem: StemName, audioBlob: Blob, model: BasicPitch
   onStatus(`Transcribing ${stem}...`);
   const audioContext = new AudioContext();
   try {
-    const audioBuffer = await audioContext.decodeAudioData(await audioBlob.arrayBuffer());
+    const decodedBuffer = await audioContext.decodeAudioData(await audioBlob.arrayBuffer());
+    const targetSampleRate = 22050;
+    const targetLength = Math.max(1, Math.ceil(decodedBuffer.duration * targetSampleRate));
+    const offlineContext = new OfflineAudioContext(1, targetLength, targetSampleRate);
+    const source = offlineContext.createBufferSource();
+    source.buffer = decodedBuffer;
+    source.connect(offlineContext.destination);
+    source.start(0);
+    const audioBuffer = await offlineContext.startRendering();
+
     const frames: number[][] = [];
     const onsets: number[][] = [];
     const contours: number[][] = [];
